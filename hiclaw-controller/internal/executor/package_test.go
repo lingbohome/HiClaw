@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/hiclaw/hiclaw-controller/internal/credprovider"
+	"github.com/hiclaw/hiclaw-controller/internal/oss/ossfake"
 )
 
 func TestWriteInlineConfigs_AllFields_OpenClaw(t *testing.T) {
@@ -622,6 +623,140 @@ func TestValidateNacosURI_STSHiclaw_SucceedsWithCredClient(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("expected success, got: %v", err)
+	}
+}
+
+func TestPutPackageObjectSeedOnlyPreservesExistingStorageObject(t *testing.T) {
+	ctx := context.Background()
+	store := ossfake.NewMemory()
+	if err := store.PutObject(ctx, "agents/alice/config/credagent.json", []byte("runtime")); err != nil {
+		t.Fatal(err)
+	}
+
+	seeded, err := putPackageObjectSeedOnly(ctx, store, true, "agents/alice/config/credagent.json", []byte("template"))
+	if err != nil {
+		t.Fatalf("putPackageObjectSeedOnly failed: %v", err)
+	}
+	if seeded {
+		t.Fatalf("existing object should not be seeded")
+	}
+
+	got, err := store.GetObject(ctx, "agents/alice/config/credagent.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "runtime" {
+		t.Fatalf("seed-only object overwritten: %q", got)
+	}
+
+	seeded, err = putPackageObjectSeedOnly(ctx, store, true, "agents/alice/config/new.json", []byte("template"))
+	if err != nil {
+		t.Fatalf("putPackageObjectSeedOnly new object failed: %v", err)
+	}
+	if !seeded {
+		t.Fatalf("new object should be seeded")
+	}
+	got, err = store.GetObject(ctx, "agents/alice/config/new.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "template" {
+		t.Fatalf("new seed object = %q", got)
+	}
+}
+
+func TestWriteFileSeedOnlyPreservesExistingLocalFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config", "credagent.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("runtime"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	seeded, err := writeFileSeedOnly(path, []byte("template"))
+	if err != nil {
+		t.Fatalf("writeFileSeedOnly failed: %v", err)
+	}
+	if seeded {
+		t.Fatalf("existing file should not be seeded")
+	}
+	assertFileContent(t, path, "runtime")
+
+	newPath := filepath.Join(filepath.Dir(path), "new.json")
+	seeded, err = writeFileSeedOnly(newPath, []byte("template"))
+	if err != nil {
+		t.Fatalf("writeFileSeedOnly new file failed: %v", err)
+	}
+	if !seeded {
+		t.Fatalf("new file should be seeded")
+	}
+	assertFileContent(t, newPath, "template")
+}
+
+func TestCopyDirSeedOnlyPreservesExistingLocalFiles(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "src")
+	dst := filepath.Join(root, "dst")
+	if err := os.MkdirAll(filepath.Join(src, "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "nested", "settings.json"), []byte("template"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "nested", "new.json"), []byte("new-template"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dst, "nested"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dst, "nested", "settings.json"), []byte("runtime"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := copyDirSeedOnly(src, dst); err != nil {
+		t.Fatalf("copyDirSeedOnly failed: %v", err)
+	}
+	assertFileContent(t, filepath.Join(dst, "nested", "settings.json"), "runtime")
+	assertFileContent(t, filepath.Join(dst, "nested", "new.json"), "new-template")
+}
+
+func TestSeedDirToStoragePreservesExistingObjects(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	src := filepath.Join(root, "skills")
+	if err := os.MkdirAll(filepath.Join(src, "tool"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "tool", "SKILL.md"), []byte("template"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "tool", "extra.md"), []byte("extra-template"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	store := ossfake.NewMemory()
+	if err := store.PutObject(ctx, "agents/alice/skills/tool/SKILL.md", []byte("runtime")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := seedDirToStorage(ctx, store, src, "agents/alice/skills"); err != nil {
+		t.Fatalf("seedDirToStorage failed: %v", err)
+	}
+
+	got, err := store.GetObject(ctx, "agents/alice/skills/tool/SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "runtime" {
+		t.Fatalf("existing storage object overwritten: %q", got)
+	}
+	got, err = store.GetObject(ctx, "agents/alice/skills/tool/extra.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "extra-template" {
+		t.Fatalf("new storage seed object = %q", got)
 	}
 }
 
