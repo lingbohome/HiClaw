@@ -18,6 +18,9 @@ spec:
               properties:
                 description:
                   type: string
+                teamName:
+                  type: string
+                  description: Runtime/storage team identity. Defaults to metadata.name.
                 peerMentions:
                   type: boolean
                   description: "Whether team workers can @mention each other in group rooms (default: true)"
@@ -57,6 +60,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    workerName:
+                      type: string
+                      description: Runtime identity for leader (Matrix localpart, OSS path key). Defaults to leader.name.
                     model:
                       type: string
                     identity:
@@ -175,6 +181,9 @@ spec:
                     properties:
                       name:
                         type: string
+                      workerName:
+                        type: string
+                        description: Runtime identity for worker (Matrix localpart, OSS path key). Defaults to worker.name.
                       model:
                         type: string
                       runtime:
@@ -361,6 +370,9 @@ spec:
                       name:
                         type: string
                         description: "Member's canonical name (matches spec.leader.name or spec.workers[i].name)."
+                      runtimeName:
+                        type: string
+                        description: "Member runtime identity key (Matrix localpart, OSS path key). Empty falls back to name."
                       role:
                         type: string
                         enum: [team_leader, worker]

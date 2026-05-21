@@ -89,8 +89,9 @@ type Worker struct {
 
 type WorkerSpec struct {
 	Model         string              `json:"model"`
-	Runtime       string              `json:"runtime,omitempty"` // openclaw | copaw | hermes (default: openclaw)
-	Image         string              `json:"image,omitempty"`   // custom Docker image
+	Runtime       string              `json:"runtime,omitempty"`    // openclaw | copaw | hermes (default: openclaw)
+	Image         string              `json:"image,omitempty"`      // custom Docker image
+	WorkerName    string              `json:"workerName,omitempty"` // business/runtime identity (Matrix localpart, OSS path key)
 	Identity      string              `json:"identity,omitempty"`
 	Soul          string              `json:"soul,omitempty"`
 	Agents        string              `json:"agents,omitempty"`
@@ -152,6 +153,15 @@ func (s WorkerSpec) DesiredState() string {
 	return "Running"
 }
 
+// EffectiveWorkerName returns the runtime identity key for a Worker.
+// Empty WorkerName falls back to metadata.name supplied by caller.
+func (s WorkerSpec) EffectiveWorkerName(metadataName string) string {
+	if s.WorkerName != "" {
+		return s.WorkerName
+	}
+	return metadataName
+}
+
 // ExposePort defines a container port to expose via the Higress gateway.
 type ExposePort struct {
 	Port     int    `json:"port"`
@@ -207,11 +217,19 @@ type Team struct {
 
 type TeamSpec struct {
 	Description   string             `json:"description,omitempty"`
+	TeamName      string             `json:"teamName,omitempty"`
 	Admin         *TeamAdminSpec     `json:"admin,omitempty"`
 	Leader        LeaderSpec         `json:"leader"`
 	Workers       []TeamWorkerSpec   `json:"workers,omitempty"`
 	PeerMentions  *bool              `json:"peerMentions,omitempty"`  // default true
 	ChannelPolicy *ChannelPolicySpec `json:"channelPolicy,omitempty"` // team-wide overrides
+}
+
+func (s TeamSpec) EffectiveTeamName(metadataName string) string {
+	if s.TeamName != "" {
+		return s.TeamName
+	}
+	return metadataName
 }
 
 type TeamAdminSpec struct {
@@ -221,6 +239,7 @@ type TeamAdminSpec struct {
 
 type LeaderSpec struct {
 	Name              string                   `json:"name"`
+	WorkerName        string                   `json:"workerName,omitempty"`
 	Model             string                   `json:"model,omitempty"`
 	Identity          string                   `json:"identity,omitempty"`
 	Soul              string                   `json:"soul,omitempty"`
@@ -257,6 +276,7 @@ type TeamLeaderHeartbeatSpec struct {
 
 type TeamWorkerSpec struct {
 	Name          string              `json:"name"`
+	WorkerName    string              `json:"workerName,omitempty"`
 	Model         string              `json:"model,omitempty"`
 	Runtime       string              `json:"runtime,omitempty"`
 	Image         string              `json:"image,omitempty"`
@@ -286,6 +306,24 @@ type TeamWorkerSpec struct {
 	// system labels (see WorkerSpec.Labels godoc). omitempty preserves
 	// hashMemberSourceSpec stability for existing Teams.
 	Labels map[string]string `json:"labels,omitempty"`
+}
+
+// EffectiveWorkerName returns the runtime identity key for a team leader.
+// Empty workerName falls back to spec.name supplied by caller.
+func (s LeaderSpec) EffectiveWorkerName() string {
+	if s.WorkerName != "" {
+		return s.WorkerName
+	}
+	return s.Name
+}
+
+// EffectiveWorkerName returns the runtime identity key for a team worker.
+// Empty workerName falls back to spec.name supplied by caller.
+func (s TeamWorkerSpec) EffectiveWorkerName() string {
+	if s.WorkerName != "" {
+		return s.WorkerName
+	}
+	return s.Name
 }
 
 type TeamStatus struct {
@@ -330,6 +368,9 @@ type TeamMemberStatus struct {
 	// Team.Spec.Workers[i].Name). Uniquely identifies the entry within
 	// Team.Status.Members.
 	Name string `json:"name"`
+	// RuntimeName is the member's runtime identity key (Matrix localpart,
+	// OSS path key, room alias key). Empty falls back to Name.
+	RuntimeName string `json:"runtimeName,omitempty"`
 	// Role is "team_leader" or "worker". Mirrors MemberContext.Role and the
 	// synthesized WorkerResponse.Role exposed via /api/v1/workers/<name>.
 	Role string `json:"role,omitempty"`
@@ -389,6 +430,7 @@ type Human struct {
 
 type HumanSpec struct {
 	DisplayName       string   `json:"displayName"`
+	Username          string   `json:"username,omitempty"`
 	Email             string   `json:"email,omitempty"`
 	PermissionLevel   int      `json:"permissionLevel"` // 1=Admin, 2=Team, 3=Worker
 	AccessibleTeams   []string `json:"accessibleTeams,omitempty"`
@@ -397,12 +439,22 @@ type HumanSpec struct {
 }
 
 type HumanStatus struct {
-	Phase           string   `json:"phase,omitempty"` // Pending/Active/Failed
-	MatrixUserID    string   `json:"matrixUserID,omitempty"`
-	InitialPassword string   `json:"initialPassword,omitempty"` // Set on creation, shown once
-	Rooms           []string `json:"rooms,omitempty"`
-	EmailSent       bool     `json:"emailSent,omitempty"`
-	Message         string   `json:"message,omitempty"`
+	Phase                       string   `json:"phase,omitempty"` // Pending/Active/Failed
+	MatrixUserID                string   `json:"matrixUserID,omitempty"`
+	InitialPassword             string   `json:"initialPassword,omitempty"` // Set on creation, shown once
+	DisplayNameSyncedGeneration int64    `json:"displayNameSyncedGeneration,omitempty"`
+	Rooms                       []string `json:"rooms,omitempty"`
+	EmailSent                   bool     `json:"emailSent,omitempty"`
+	Message                     string   `json:"message,omitempty"`
+}
+
+// EffectiveUsername returns the Matrix localpart for a Human.
+// Empty username falls back to metadata.name supplied by caller.
+func (s HumanSpec) EffectiveUsername(metadataName string) string {
+	if s.Username != "" {
+		return s.Username
+	}
+	return metadataName
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
