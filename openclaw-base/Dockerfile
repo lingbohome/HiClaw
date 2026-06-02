@@ -50,7 +50,7 @@ RUN if [ -n "${APT_MIRROR}" ]; then \
         done; \
     fi && \
     apt-get update && apt-get install -y \
-    git python3 make g++ curl \
+    git python3 python3-pip python3-venv make g++ curl \
     jq gettext-base openssh-client ca-certificates procps tzdata \
     && rm -rf /var/lib/apt/lists/*
 

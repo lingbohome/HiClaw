@@ -73,7 +73,9 @@ RUN mkdir -p /tmp/copaw-worker/src/copaw_worker \
     && echo '__version__ = "0.0.0"' > /tmp/copaw-worker/src/copaw_worker/__init__.py \
     && echo '__version__ = "0.0.0"' > /tmp/copaw-worker/src/matrix/__init__.py
 
-# --- Single venv: copaw from PyPI + copaw-worker ---
+# --- Single venv: copaw from PyPI + copaw-worker + hiclaw-taskflow packages ---
+COPY --from=hiclaw-taskflow . /tmp/hiclaw-taskflow/
+COPY --from=hiclaw-filesync . /tmp/hiclaw-filesync/
 RUN python -m venv /opt/venv/copaw \
     && /opt/venv/copaw/bin/pip install --no-cache-dir \
         --index-url "${PIP_INDEX_URL}" \
@@ -86,12 +88,17 @@ RUN python -m venv /opt/venv/copaw \
     && /opt/venv/copaw/bin/pip install --no-cache-dir \
         --index-url "${PIP_INDEX_URL}" \
         --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
+        /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ \
+    && /opt/venv/copaw/bin/pip install --no-cache-dir \
+        --index-url "${PIP_INDEX_URL}" \
+        --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
         "wrapt<2.0" \
         loongsuite-site-bootstrap \
         loongsuite-distro \
         opentelemetry-exporter-otlp \
         loongsuite-instrumentation-copaw \
-        loongsuite-instrumentation-agentscope
+        loongsuite-instrumentation-agentscope \
+    && rm -rf /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/
 
 # --- Overlay real copaw-worker source (high-frequency changes) ---
 # This layer is rebuilt on every src/ change but does NOT invalidate the
@@ -110,7 +117,9 @@ RUN SITE=/opt/venv/copaw/lib/python3.11/site-packages \
     && rm -rf /tmp/copaw-worker/
 
 # CoPaw runtime CLI (make it available in PATH for skills)
-RUN ln -sf /opt/venv/copaw/bin/copaw /usr/local/bin/copaw
+RUN ln -sf /opt/venv/copaw/bin/copaw /usr/local/bin/copaw \
+    && ln -sf /opt/venv/copaw/bin/hiclaw-taskflow /usr/local/bin/hiclaw-taskflow \
+    && ln -sf /opt/venv/copaw/bin/hiclaw-filesync /usr/local/bin/hiclaw-filesync
 
 # Entrypoint script
 COPY --chmod=755 scripts/copaw-worker-entrypoint.sh /opt/hiclaw/scripts/copaw-worker-entrypoint.sh

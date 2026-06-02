@@ -58,6 +58,13 @@ ENV PATH="/opt/openclaw/packages/clawdbot/node_modules/.bin:${PATH}"
 # Shared environment bootstrap and credential management
 COPY --from=shared . /opt/hiclaw/scripts/lib/
 
+# HiClaw shared taskflow packages (Python CLIs for task lifecycle & file sync)
+COPY --from=hiclaw-taskflow . /tmp/hiclaw-taskflow/
+COPY --from=hiclaw-filesync . /tmp/hiclaw-filesync/
+RUN pip3 install --break-system-packages --no-cache-dir \
+    /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ \
+    && rm -rf /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/
+
 # mc wrapper: auto-refreshes STS credentials before every mc invocation (no-op in local mode)
 RUN chmod +x /opt/hiclaw/scripts/lib/mc-wrapper.sh && \
     ln -sf /opt/hiclaw/scripts/lib/mc-wrapper.sh /usr/local/bin/mc

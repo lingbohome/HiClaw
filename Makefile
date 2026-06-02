@@ -76,6 +76,9 @@ BUILTIN_VERSION_ARG = --build-arg BUILTIN_VERSION=$(VERSION)
 # Named build context for shared libraries (requires BuildKit / Docker 23+)
 SHARED_LIB_CTX = --build-context shared=./shared/lib
 
+# Named build context for shared HiClaw taskflow packages (hiclaw-taskflow + hiclaw-filesync)
+TASKFLOW_CTX = --build-context hiclaw-taskflow=./hiclaw-taskflow --build-context hiclaw-filesync=./hiclaw-filesync
+
 # Named build context for local copaw_worker extension
 COPAW_WORKER_CTX = --build-context copaw-worker=./copaw
 
@@ -167,19 +170,19 @@ build-embedded: build-hiclaw-controller ## Build embedded all-in-one controller 
 
 build-worker: ## Build Worker image
 	@echo "==> Building Worker image: $(LOCAL_WORKER) (registry: $(HIGRESS_REGISTRY))"
-	docker build $(PLATFORM_FLAG) $(REGISTRY_ARG) $(OPENCLAW_BASE_BUILD_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+	docker build $(PLATFORM_FLAG) $(REGISTRY_ARG) $(OPENCLAW_BASE_BUILD_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 		-t $(LOCAL_WORKER) \
 		./worker/
 
 build-copaw-worker: ## Build CoPaw Worker image
 	@echo "==> Building CoPaw Worker image: $(LOCAL_COPAW_WORKER) (registry: $(HIGRESS_REGISTRY))"
-	docker build $(PLATFORM_FLAG) $(REGISTRY_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+	docker build $(PLATFORM_FLAG) $(REGISTRY_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 		-t $(LOCAL_COPAW_WORKER) \
 		./copaw/
 
 build-hermes-worker: ## Build Hermes Worker image
 	@echo "==> Building Hermes Worker image: $(LOCAL_HERMES_WORKER) (registry: $(HIGRESS_REGISTRY))"
-	docker build $(PLATFORM_FLAG) $(REGISTRY_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+	docker build $(PLATFORM_FLAG) $(REGISTRY_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 		-t $(LOCAL_HERMES_WORKER) \
 		./hermes/
 
@@ -371,7 +374,7 @@ ifeq ($(IS_PODMAN),1)
 	$(foreach plat,$(subst $(comma), ,$(MULTIARCH_PLATFORMS)), \
 		echo "  -> Building Worker for $(plat)..." && \
 		podman build --platform $(plat) \
-			$(REGISTRY_ARG) $(OPENCLAW_BASE_PUSH_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+			$(REGISTRY_ARG) $(OPENCLAW_BASE_PUSH_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 			--build-arg HICLAW_CONTROLLER_IMAGE=$(CONTROLLER_TAG) \
 			--manifest $(WORKER_TAG) \
 			./worker/ && ) true
@@ -383,7 +386,7 @@ else
 	docker buildx build \
 		--builder $(BUILDX_BUILDER) \
 		--platform $(MULTIARCH_PLATFORMS) \
-		$(REGISTRY_ARG) $(OPENCLAW_BASE_PUSH_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+		$(REGISTRY_ARG) $(OPENCLAW_BASE_PUSH_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 		--build-arg HICLAW_CONTROLLER_IMAGE=$(CONTROLLER_TAG) \
 		-t $(WORKER_TAG) \
 		$(if $(PUSH_LATEST),-t $(WORKER_IMAGE):latest) \

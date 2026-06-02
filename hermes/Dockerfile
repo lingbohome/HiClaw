@@ -82,9 +82,12 @@ RUN npm config set registry ${NPM_REGISTRY} && \
 # --- Heavy install layer (cached unless HERMES_GIT_REF or hermes-worker
 #     pyproject.toml change) ---
 #
-# Stage hermes-worker dependency metadata for layer caching: pyproject.toml
-# changes invalidate the heavy install layer below; src/ changes don't.
+# Stage hermes-worker dependency metadata for layer caching:
+# pyproject.toml changes invalidate the heavy install layer below; src/ changes don't.
+# hiclaw-taskflow / hiclaw-filesync are tiny (pure stdlib) — full source COPY is fine.
 COPY pyproject.toml README.md /tmp/hermes-worker/
+COPY --from=hiclaw-taskflow . /tmp/hiclaw-taskflow/
+COPY --from=hiclaw-filesync . /tmp/hiclaw-filesync/
 RUN mkdir -p /tmp/hermes-worker/src/hermes_worker \
     && mkdir -p /tmp/hermes-worker/src/hermes_matrix \
     && echo '__version__ = "0.0.0"' > /tmp/hermes-worker/src/hermes_worker/__init__.py \
@@ -118,7 +121,12 @@ RUN python -m venv /opt/venv/hermes \
     && /opt/venv/hermes/bin/pip install --no-cache-dir \
         --index-url "${PIP_INDEX_URL}" \
         --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
-        /tmp/hermes-worker/
+        /tmp/hermes-worker/ \
+    && /opt/venv/hermes/bin/pip install --no-cache-dir \
+        --index-url "${PIP_INDEX_URL}" \
+        --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
+        /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ \
+    && rm -rf /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ /tmp/hermes-worker/
 
 # --- Overlay real hermes-worker source (high-frequency changes) ---
 # This layer is rebuilt on every src/ change but does NOT invalidate the
@@ -146,7 +154,9 @@ RUN if [ -f /opt/venv/hermes/bin/hermes ]; then \
     && if [ -f /opt/venv/hermes/bin/hermes-agent ]; then \
         ln -sf /opt/venv/hermes/bin/hermes-agent /usr/local/bin/hermes-agent; \
     fi \
-    && ln -sf /opt/venv/hermes/bin/hermes-worker /usr/local/bin/hermes-worker
+    && ln -sf /opt/venv/hermes/bin/hermes-worker /usr/local/bin/hermes-worker \
+    && ln -sf /opt/venv/hermes/bin/hiclaw-taskflow /usr/local/bin/hiclaw-taskflow \
+    && ln -sf /opt/venv/hermes/bin/hiclaw-filesync /usr/local/bin/hiclaw-filesync
 
 # Entrypoint script
 COPY --chmod=755 scripts/hermes-worker-entrypoint.sh /opt/hiclaw/scripts/hermes-worker-entrypoint.sh
