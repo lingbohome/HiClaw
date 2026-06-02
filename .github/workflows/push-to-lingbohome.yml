@@ -1,0 +1,89 @@
+name: Push to lingbohome Registry
+
+# Build + push HiClaw worker images to lingbohome's Alibaba Cloud registry.
+# Mirrors the main build.yml but targets a personal registry.
+# Triggered manually from https://github.com/lingbohome/HiClaw/actions.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image tag (default: latest)'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: registry.cn-shanghai.aliyuncs.com
+  REPO: lingbohome
+  # Overseas mirror for base images (accessible from GitHub Actions runners)
+  HIGRESS_REGISTRY: higress-registry.us-west-1.cr.aliyuncs.com
+
+jobs:
+  # ── Base image first ─────────────────────────────────────────────────
+  base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Alibaba Cloud Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ALIYUN_REGISTRY_USERNAME }}
+          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+
+      - name: Build and push openclaw-base
+        run: |
+          make push-openclaw-base \
+            VERSION=${{ github.event.inputs.version || 'latest' }} \
+            REGISTRY=${{ env.REGISTRY }} \
+            REPO=${{ env.REPO }} \
+            HIGRESS_REGISTRY=${{ env.HIGRESS_REGISTRY }}
+
+  # ── Worker images (parallel, after base) ─────────────────────────────
+  workers:
+    needs: base
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - push-worker
+          - push-copaw-worker
+          - push-hermes-worker
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Alibaba Cloud Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ALIYUN_REGISTRY_USERNAME }}
+          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+
+      - name: Build and push ${{ matrix.target }}
+        run: |
+          TAG="${{ github.event.inputs.version || 'latest' }}"
+          make ${{ matrix.target }} \
+            VERSION="${TAG}" \
+            REGISTRY=${{ env.REGISTRY }} \
+            REPO=${{ env.REPO }} \
+            OPENCLAW_BASE_VERSION="${TAG}" \
+            CONTROLLER_TAG=${{ env.HIGRESS_REGISTRY }}/higress/hiclaw-controller:latest \
+            HIGRESS_REGISTRY=${{ env.HIGRESS_REGISTRY }} \
+            DOCKER_BUILD_ARGS="--build-arg APT_MIRROR= --build-arg PIP_INDEX_URL=https://pypi.org/simple/"
