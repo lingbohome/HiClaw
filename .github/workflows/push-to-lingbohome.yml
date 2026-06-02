@@ -55,10 +55,10 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - push-manager
           - push-worker
           - push-copaw-worker
           - push-hermes-worker
+          - push-manager
 
     steps:
       - name: Checkout (patch branch)
@@ -79,7 +79,13 @@ jobs:
       - name: Build and push ${{ matrix.target }}
         run: |
           TAG="${{ github.event.inputs.version || 'latest' }}"
-          make ${{ matrix.target }} \
+          MAKE_OPTS=""
+          if [ "${{ matrix.target }}" = "push-manager" ]; then
+            # push-manager depends on push-hiclaw-controller in Makefile.
+            # Skip it — we use the upstream pre-built controller image.
+            MAKE_OPTS="-o push-hiclaw-controller"
+          fi
+          make ${MAKE_OPTS} ${{ matrix.target }} \
             VERSION="${TAG}" \
             REGISTRY=${{ env.REGISTRY }} \
             REPO=${{ env.REPO }} \
