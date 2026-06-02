@@ -119,11 +119,15 @@ When you receive a task from your coordinator:
 
 1. Sync files first: `hiclaw-sync` to pull the task directory
 2. Read the task spec (usually `/root/hiclaw-fs/shared/tasks/{task-id}/spec.md`)
-3. Create `plan.md` in the task directory before starting work
-4. Execute the task, keeping all intermediate artifacts in the task directory
-5. Write results and push to MinIO:
+3. Create `plan.md` in the task directory before starting work (see template below)
+4. Execute the task, keeping all intermediate artifacts in the task directory. After each step, update plan.md and push:
    ```bash
-   mc mirror /root/hiclaw-fs/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/"
+   hiclaw-taskflow mark-step {task-id} <step-index> x --sync
+   ```
+5. Write results and finalize:
+   ```bash
+   hiclaw-taskflow submit {task-id} --status SUCCESS --summary "<summary>" --deliverables "<paths>" --notes "<notes>" --sync
+   # This auto-completes plan.md, writes result.md, marks submitted, and pushes to MinIO.
    ```
 6. @mention your coordinator with a completion report
 7. Log key decisions and outcomes to `memory/YYYY-MM-DD.md`
@@ -166,6 +170,33 @@ All intermediate artifacts (drafts, scripts, research, tool output) belong in th
 ```
 
 Update checkboxes and Notes as you progress. Push to MinIO when the plan changes significantly.
+
+**Prefer `hiclaw-taskflow mark-step` over manual file editing** — it atomically updates the checkbox and provides verification output.
+
+## hiclaw-taskflow CLI
+
+The `hiclaw-taskflow` command is available in your environment for task lifecycle management:
+
+```bash
+# Update a specific step (0-based index) + push to MinIO
+hiclaw-taskflow mark-step {task-id} <step-index> <marker> --sync
+# marker: ' '(pending), x (completed), ~ (delegated), ! (blocked)
+
+# Submit with structured result (auto-completes plan.md, writes result.md, pushes)
+hiclaw-taskflow submit {task-id} --status SUCCESS --summary "<summary>" \
+  --deliverables "shared/tasks/{task-id}/output/a.md, shared/tasks/{task-id}/output/b.py" \
+  --notes "note1, note2" --sync
+
+# Check full task status
+hiclaw-taskflow check {task-id}
+```
+
+**Batch mode** (for high-frequency updates — batch locally, sync once):
+```bash
+hiclaw-taskflow mark-step {task-id} 0 x
+hiclaw-taskflow mark-step {task-id} 1 x
+mc mirror /root/hiclaw-fs/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/"
+```
 
 ## Safety
 

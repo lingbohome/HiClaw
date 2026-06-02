@@ -23,6 +23,7 @@ from copaw_worker.task import (
     check_task,
     delegate_task,
     is_effective_result,
+    mark_step_in_plan,
     submit_task,
     validate_task_result,
 )
@@ -117,6 +118,24 @@ def _optional_str(payload: dict[str, Any], key: str) -> str | None:
     if not isinstance(value, str):
         raise TaskflowError(f"payload.{key} must be a string")
     return value
+
+
+def _summarize_plan_steps(plan_text: str) -> list[dict[str, object]]:
+    """Extract step summaries from plan.md for the tool response."""
+    import re as _re
+    _cb_re = _re.compile(r"^([-*]\s*\[)([ xX~!→])(\]\s+.+)$")
+    steps: list[dict[str, object]] = []
+    idx = 0
+    for line in plan_text.splitlines():
+        m = _cb_re.match(line)
+        if m:
+            steps.append({
+                "index": idx,
+                "marker": m.group(2),
+                "description": m.group(3).strip(),
+            })
+            idx += 1
+    return steps
 
 
 def _coerce_str_list(payload: dict[str, Any], key: str) -> list[str]:
@@ -258,8 +277,43 @@ async def taskflow(
                 response_payload["result"] = asdict(result)
             return _ok(**response_payload)
 
+        if action == "mark_step":
+            task_id = _required_str(payload_data, "taskId")
+            step_index_raw = payload_data.get("stepIndex")
+            if not isinstance(step_index_raw, int) and not (
+                isinstance(step_index_raw, str) and step_index_raw.isdigit()
+            ):
+                raise TaskflowError("payload.stepIndex is required (int)")
+            step_index = int(step_index_raw)
+            marker = _required_str(payload_data, "marker")
+            if marker not in (" ", "x", "X", "~", "!", "→"):
+                raise TaskflowError(
+                    f"invalid marker {marker!r}, must be one of: ' ', x, ~, !, →"
+                )
+            if dryRun:
+                return _ok(
+                    dryRun=True,
+                    action=action,
+                    taskId=task_id,
+                    stepIndex=step_index,
+                    marker=marker,
+                )
+            task_path = f"shared/tasks/{task_id}/"
+            sync = create_sync()
+            sync.pull_shared_path(task_path)
+            updated_plan = mark_step_in_plan(store, task_id=task_id, step_index=step_index, marker=marker)
+            sync.push_shared_path(task_path, exclude=["spec.md", "base/"])
+            return _ok(
+                action=action,
+                taskId=task_id,
+                stepIndex=step_index,
+                marker=marker,
+                synced=True,
+                steps=_summarize_plan_steps(updated_plan),
+            )
+
         raise TaskflowError(
-            "action must be one of: delegate_task, check_task, ack_task, submit_task",
+            "action must be one of: delegate_task, check_task, ack_task, submit_task, mark_step",
         )
     except TaskflowError as exc:
         return _error(

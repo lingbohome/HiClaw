@@ -156,14 +156,19 @@ When you receive a task from your coordinator:
 
 1. Read the task spec (`~/shared/tasks/{task-id}/spec.md`) — the shared directory is auto-synced
 2. Register the task in `task-history.json` with status `in_progress` (see task-progress skill)
-3. Create `plan.md` in the task directory before starting work
-4. Execute the task. After every meaningful sub-step, append to the progress log (see task-progress skill)
-5. Push the task directory after each sub-step:
+3. Create `plan.md` in the task directory before starting work (see template below)
+4. Execute the task. After every meaningful sub-step:
+   - Append to the progress log (see task-progress skill)
+   - Update plan.md step status and push to MinIO in one step:
+     ```bash
+     hiclaw-taskflow mark-step {task-id} <step-index> x --sync
+     ```
+5. Write `result.md` (see result.md Template below), then finalize:
    ```bash
-   mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/"
+   hiclaw-taskflow submit {task-id} --status SUCCESS --summary "<summary>" --deliverables "<paths>" --notes "<notes>" --sync
+   # This auto-completes plan.md, writes result.md, marks submitted, and pushes to MinIO.
    ```
-6. Write `result.md` (finite tasks only), final push, update `task-history.json` to `completed`
-7. @mention your coordinator with a completion report
+6. @mention your coordinator with a completion report
 8. Log key decisions and outcomes to `memory/YYYY-MM-DD.md`
 
 If blocked, @mention your coordinator immediately — don't wait to be asked.
@@ -203,7 +208,34 @@ All intermediate artifacts belong in the task directory. Do not scatter files el
 (running notes as you work — decisions, findings, blockers)
 ```
 
-Update checkboxes immediately as you complete each step. Push after each update.
+Update checkboxes immediately as you complete each step. Use `--sync` to push to MinIO in the same step.
+
+**Prefer `hiclaw-taskflow mark-step` over manual file editing** — it atomically updates the checkbox, syncs to MinIO, and provides verification output.
+
+## hiclaw-taskflow CLI
+
+The `hiclaw-taskflow` command is available in your environment for task lifecycle management:
+
+```bash
+# Update a specific step (0-based index) + push to MinIO
+hiclaw-taskflow mark-step {task-id} <step-index> <marker> --sync
+# marker: ' '(pending), x (completed), ~ (delegated), ! (blocked)
+
+# Submit with structured result (auto-completes plan.md, writes result.md, pushes)
+hiclaw-taskflow submit {task-id} --status SUCCESS --summary "<summary>" \
+  --deliverables "shared/tasks/{task-id}/output/a.md, shared/tasks/{task-id}/output/b.py" \
+  --notes "note1, note2" --sync
+
+# Check full task status
+hiclaw-taskflow check {task-id}
+```
+
+**Batch mode** (for high-frequency updates — batch locally, sync once):
+```bash
+hiclaw-taskflow mark-step {task-id} 0 x
+hiclaw-taskflow mark-step {task-id} 1 x
+mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/"
+```
 
 ## MinIO Access
 

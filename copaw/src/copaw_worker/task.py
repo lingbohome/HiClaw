@@ -99,6 +99,8 @@ class TaskStore(Protocol):
     def write_task_spec(self, task_id: str, spec: str) -> None: ...
     def read_task_result(self, task_id: str) -> TaskResult: ...
     def write_task_result(self, task_id: str, result: TaskResult) -> None: ...
+    def read_task_plan(self, task_id: str) -> str | None: ...
+    def write_task_plan(self, task_id: str, plan: str) -> None: ...
 
 
 class FileSystemTaskStore:
@@ -186,6 +188,17 @@ class FileSystemTaskStore:
         path = self._task_dir(task_id) / "result.md"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(render_task_result(result))
+
+    def read_task_plan(self, task_id: str) -> str | None:
+        path = self._task_dir(task_id) / "plan.md"
+        if not path.exists():
+            return None
+        return path.read_text()
+
+    def write_task_plan(self, task_id: str, plan: str) -> None:
+        path = self._task_dir(task_id) / "plan.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(plan)
 
 
 def create_project(
@@ -551,6 +564,81 @@ def is_effective_result(result: TaskResult) -> bool:
     return result.status in EFFECTIVE_RESULT_STATUSES
 
 
+# ── plan.md checkbox helpers ───────────────────────────────────────────────
+
+_PLAN_CHECKBOX_RE = re.compile(r"^([-*]\s*\[)([ xX~!→])(\]\s+.+)$")
+
+
+def auto_complete_plan_markers(plan_text: str) -> str:
+    """Replace all non-completed checkboxes with [x].
+
+    [!] (blocked) markers are also converted — submitting signals completion.
+    """
+    lines = plan_text.splitlines()
+    result = []
+    for line in lines:
+        m = _PLAN_CHECKBOX_RE.match(line)
+        if m and m.group(2) not in ("x", "X"):
+            line = f"{m.group(1)}x{m.group(3)}"
+        result.append(line)
+    return "\n".join(result) + ("\n" if plan_text.endswith("\n") else "")
+
+
+def _auto_complete_task_plan(store: TaskStore, task_id: str) -> None:
+    """Read task-level plan.md, auto-complete all checkboxes, write back."""
+    plan = store.read_task_plan(task_id)
+    if plan is None:
+        return  # no plan.md — nothing to do
+    updated = auto_complete_plan_markers(plan)
+    store.write_task_plan(task_id, updated)
+
+
+def mark_step_in_plan(
+    store: TaskStore,
+    *,
+    task_id: str,
+    step_index: int,
+    marker: str,
+) -> str:
+    """Update a single plan.md step checkbox and persist.
+
+    Returns the updated plan text.
+    Raises ValueError if step_index is out of range or marker invalid.
+    """
+    if marker not in MARKER_TO_STATUS:
+        raise TaskflowError(
+            f"invalid marker {marker!r}, must be one of: "
+            f"{', '.join(repr(k) for k in MARKER_TO_STATUS)}"
+        )
+
+    plan = store.read_task_plan(task_id)
+    if plan is None:
+        raise TaskflowError(f"plan.md not found for task {task_id}")
+
+    lines = plan.splitlines()
+    current_idx = 0
+    found = False
+
+    for i, line in enumerate(lines):
+        m = _PLAN_CHECKBOX_RE.match(line)
+        if m:
+            if current_idx == step_index:
+                lines[i] = f"{m.group(1)}{marker}{m.group(3)}"
+                found = True
+                break
+            current_idx += 1
+
+    if not found:
+        raise TaskflowError(
+            f"step_index {step_index} out of range "
+            f"(found {current_idx} checkbox lines)"
+        )
+
+    updated = "\n".join(lines) + ("\n" if plan.endswith("\n") else "")
+    store.write_task_plan(task_id, updated)
+    return updated
+
+
 def ack_task(store: TaskStore, *, task_id: str, actor: str | None = None) -> TaskMeta:
     """Mark a local task as acknowledged/in progress without touching graph."""
     meta = store.read_task_meta(task_id)
@@ -569,7 +657,9 @@ def submit_task(
     result: TaskResult | None = None,
     actor: str | None = None,
 ) -> TaskMeta:
-    """Mark a local task submitted after result.md exists and is valid."""
+    """Mark a local task submitted after result.md exists and is valid.
+    Auto-completes task-level plan.md checkboxes so the progress tree
+    reflects completion regardless of whether the worker updated them."""
     meta = store.read_task_meta(task_id)
     _require_assigned_worker(meta, actor)
     _require_task_room(meta)
@@ -577,6 +667,7 @@ def submit_task(
         store.write_task_result(task_id, result)
     else:
         store.read_task_result(task_id)
+    _auto_complete_task_plan(store, task_id)
     meta.status = "submitted"
     meta.submitted_at = _now()
     store.write_task_meta(meta)

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hiclaw-filesync"
+version = "0.1.0"
+description = "Deterministic file-sync tool for HiClaw workers — pull/push/stat/list shared paths via MinIO"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = [
+    # Pure stdlib + mc CLI — no external Python deps
+]
+
+[project.urls]
+Homepage = "https://github.com/lingbohome/HiClaw"
+Repository = "https://github.com/lingbohome/HiClaw"
+
+[project.scripts]
+hiclaw-filesync = "hiclaw_filesync.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
