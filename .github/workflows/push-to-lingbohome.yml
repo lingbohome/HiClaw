@@ -55,6 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         target:
+          - push-manager
           - push-worker
           - push-copaw-worker
           - push-hermes-worker
