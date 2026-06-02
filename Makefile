@@ -216,7 +216,7 @@ IS_PODMAN := $(shell docker version 2>&1 | grep -qi podman && echo 1 || echo 0)
 
 buildx-setup: ## Ensure multi-arch build prerequisites are met
 ifeq ($(IS_PODMAN),1)
-	@echo "==> Podman detected â€?no buildx setup needed (using manifest workflow)"
+	@echo "==> Podman detected ï¿½?no buildx setup needed (using manifest workflow)"
 else
 	@if ! docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1; then \
 		echo "==> Creating buildx builder: $(BUILDX_BUILDER)"; \
@@ -413,7 +413,7 @@ else
 	docker buildx build \
 		--builder $(BUILDX_BUILDER) \
 		--platform $(MULTIARCH_PLATFORMS) \
-		$(REGISTRY_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+		$(REGISTRY_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 		--build-arg HICLAW_CONTROLLER_IMAGE=$(CONTROLLER_TAG) \
 		-t $(COPAW_WORKER_TAG) \
 		$(if $(PUSH_LATEST),-t $(COPAW_WORKER_IMAGE):latest) \
@@ -440,7 +440,7 @@ else
 	docker buildx build \
 		--builder $(BUILDX_BUILDER) \
 		--platform $(MULTIARCH_PLATFORMS) \
-		$(REGISTRY_ARG) $(SHARED_LIB_CTX) $(DOCKER_BUILD_ARGS) \
+		$(REGISTRY_ARG) $(SHARED_LIB_CTX) $(TASKFLOW_CTX) $(DOCKER_BUILD_ARGS) \
 		--build-arg HICLAW_CONTROLLER_IMAGE=$(CONTROLLER_TAG) \
 		-t $(HERMES_WORKER_TAG) \
 		$(if $(PUSH_LATEST),-t $(HERMES_WORKER_IMAGE):latest) \
@@ -453,7 +453,7 @@ endif
 # Only use for local development / testing, never for release.
 
 push-native: tag ## Push native-arch images (dev only, overwrites multi-arch!)
-	@echo "WARNING: Pushing native-arch only â€?this overwrites multi-arch manifests!"
+	@echo "WARNING: Pushing native-arch only ï¿½?this overwrites multi-arch manifests!"
 	@echo "==> Pushing Manager: $(MANAGER_TAG)"
 	docker push $(MANAGER_TAG)
 	@echo "==> Pushing Worker: $(WORKER_TAG)"
