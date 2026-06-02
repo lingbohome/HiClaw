@@ -28,9 +28,6 @@ jobs:
         with:
           ref: patch
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -47,6 +44,7 @@ jobs:
             VERSION=${{ github.event.inputs.version || 'latest' }} \
             REGISTRY=${{ env.REGISTRY }} \
             REPO=${{ env.REPO }} \
+            MULTIARCH_PLATFORMS=linux/amd64 \
             HIGRESS_REGISTRY=${{ env.HIGRESS_REGISTRY }}
 
   # ── Worker images (parallel, after base) ─────────────────────────────
@@ -67,9 +65,6 @@ jobs:
         with:
           ref: patch
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -87,6 +82,7 @@ jobs:
             VERSION="${TAG}" \
             REGISTRY=${{ env.REGISTRY }} \
             REPO=${{ env.REPO }} \
+            MULTIARCH_PLATFORMS=linux/amd64 \
             OPENCLAW_BASE_VERSION="${TAG}" \
             CONTROLLER_TAG=${{ env.HIGRESS_REGISTRY }}/higress/hiclaw-controller:latest \
             HIGRESS_REGISTRY=${{ env.HIGRESS_REGISTRY }} \
