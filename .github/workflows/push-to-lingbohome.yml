@@ -23,8 +23,10 @@ jobs:
   base:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout (patch branch)
         uses: actions/checkout@v4
+        with:
+          ref: patch
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,8 +62,10 @@ jobs:
           - push-hermes-worker
 
     steps:
-      - name: Checkout
+      - name: Checkout (patch branch)
         uses: actions/checkout@v4
+        with:
+          ref: patch
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
