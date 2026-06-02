@@ -35,7 +35,22 @@ shared/tasks/{task-id}/<deliverables>
 
 `ack_task` and `submit_task` only succeed when your Matrix identity matches `meta.json.assigned_to`. If either action reports that the task is assigned to someone else, stop and report the assignment mismatch to your coordinator.
 
-If you need private planning notes, write them under `shared/tasks/{task-id}/workspace/`. Do not create shared task-level `plan.md`.
+Create `plan.md` in the task directory with checkbox steps before starting work. Update each step as you progress with `taskflow` `action=mark_step`:
+
+```json
+{
+  "action": "mark_step",
+  "payload": {
+    "taskId": "{task-id}",
+    "stepIndex": 0,
+    "marker": "x"
+  }
+}
+```
+
+Task-level `shared/tasks/{task-id}/plan.md` is YOUR execution plan for this task's sub-steps. Project-level `shared/projects/{project-id}/plan.md` is the DAG graph managed by the Team Leader. These are separate files at different paths — they do not conflict.
+
+If you need private working notes, write them under `shared/tasks/{task-id}/workspace/`.
 
 Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` unless the task spec explicitly tells you to.
 
@@ -57,7 +72,7 @@ Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` 
 
    `meta.json.room_id` is the task's assignment and delivery room. Use it only when cross-room delivery is truly needed. If it is missing, stop and report a blocker in the current session instead of guessing another room.
 
-3. Execute the task. Keep deliverables inside `shared/tasks/{task-id}/`.
+3. Create `plan.md` with checkbox steps, then execute the task. After each step, mark it complete via `taskflow` `action=mark_step`. Keep deliverables inside `shared/tasks/{task-id}/`. When you submit, `submit_task` auto-completes any remaining plan.md checkboxes.
 4. Submit the task result with `taskflow`. This writes `shared/tasks/{task-id}/result.md`, marks local task state submitted, pushes the task directory to storage, and verifies `result.md` exists on storage:
 
    ```json
