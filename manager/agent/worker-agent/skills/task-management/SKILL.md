@@ -83,6 +83,40 @@ Submitting a result ends this Worker task. If more work is needed after `REVISIO
 @coordinator:domain TASK_COMPLETED: {task-id} - <short outcome>
 ```
 
+## Revision
+
+When your coordinator asks you to revise a previously submitted task (same task-id):
+
+1. Pull the latest task state from MinIO:
+   ```bash
+   hiclaw-taskflow check {task-id} --sync
+   ```
+
+2. Read `rejection_reason` from the output — this tells you what needs to be changed.
+
+3. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — update the existing one as you make progress.
+
+4. Update plan.md steps if needed:
+   ```bash
+   hiclaw-taskflow mark-step {task-id} <step-index> x --sync
+   ```
+
+5. Re-submit when revisions are complete:
+   ```bash
+   hiclaw-taskflow submit {task-id} \
+     --status SUCCESS \
+     --summary "<one paragraph summary of revisions>" \
+     --deliverables "shared/tasks/{task-id}/output/..." \
+     --sync
+   ```
+
+6. @mention your coordinator:
+   ```
+   @coordinator:domain TASK_COMPLETED: {task-id} - revisions applied
+   ```
+
+This is still the same task (same task-id, same workspace). Treat it as a revision, not a new task.
+
 ## Blocked
 
 If blocked, submit a `BLOCKED` result immediately:

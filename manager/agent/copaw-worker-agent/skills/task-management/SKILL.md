@@ -101,6 +101,48 @@ Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` 
 
    Do not look up your Worker profile room or private room as a fallback. The task directory is the source of truth if you ever need to verify the assignment room.
 
+## Revision
+
+When your coordinator asks you to revise a previously submitted task (same task-id):
+
+1. Read `rejection_reason` from `meta.json` — this tells you what needs to be changed. The task status is already `in_progress`, so you do not need to call `ack_task` again.
+
+2. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — update the existing one as you make progress.
+
+3. Update plan.md steps if needed:
+   ```json
+   {
+     "action": "mark_step",
+     "payload": {
+       "taskId": "{task-id}",
+       "stepIndex": 0,
+       "marker": "x"
+     }
+   }
+   ```
+
+4. Re-submit when revisions are complete. This overwrites `result.md` and pushes to MinIO:
+   ```json
+   {
+     "action": "submit_task",
+     "payload": {
+       "taskId": "{task-id}",
+       "status": "SUCCESS",
+       "summary": "<one paragraph summary of revisions>",
+       "deliverables": [
+         "shared/tasks/{task-id}/workspace/<file>"
+       ]
+     }
+   }
+   ```
+
+5. @mention your coordinator:
+   ```text
+   @coordinator:domain TASK_COMPLETED: {task-id} - revisions applied
+   ```
+
+This is still the same task (same task-id, same workspace). Treat it as a revision, not a new task.
+
 ## Blocked
 
 If blocked, submit a `BLOCKED` result. `submit_task` automatically pushes and verifies:
