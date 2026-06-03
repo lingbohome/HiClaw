@@ -67,9 +67,9 @@ class LoopPlan:
 @dataclass
 class TaskMeta:
     task_id: str
-    project_id: str
-    task_title: str
-    assigned_to: str
+    project_id: str | None = None
+    task_title: str = ""
+    assigned_to: str = ""
     room_id: str | None = None
     status: str = "assigned"
     depends_on: list[str] = field(default_factory=list)
@@ -149,9 +149,9 @@ class FileSystemTaskStore:
         data = _read_json(path)
         return TaskMeta(
             task_id=str(data["task_id"]),
-            project_id=str(data["project_id"]),
-            task_title=str(data["task_title"]),
-            assigned_to=str(data["assigned_to"]),
+            project_id=data.get("project_id"),
+            task_title=str(data.get("task_title") or data.get("title", "")),
+            assigned_to=str(data.get("assigned_to") or data.get("assigned_worker", "")),
             room_id=data.get("room_id"),
             status=str(data.get("status") or "assigned"),
             depends_on=list(data.get("depends_on") or []),
