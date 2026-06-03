@@ -107,9 +107,13 @@ When your coordinator asks you to revise a previously submitted task (same task-
 
 1. Read `rejection_reason` from `meta.json` — this tells you what needs to be changed. The task status is already `in_progress`, so you do not need to call `ack_task` again.
 
-2. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — update the existing one as you make progress.
+2. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — append new checkbox steps for the revision work at the bottom of the existing plan:
 
-3. Update plan.md steps if needed:
+   ```markdown
+   - [ ] Revision: {describe what you changed based on rejection_reason}
+   ```
+
+3. Mark revision steps as you complete them:
    ```json
    {
      "action": "mark_step",

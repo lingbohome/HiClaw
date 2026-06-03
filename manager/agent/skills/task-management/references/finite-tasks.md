@@ -81,8 +81,15 @@ When a Worker @mentions you with task completion:
    ```
 
    **If meta.json has a `solforge_ref` field:**
+   - **HARD RULE — applies every time, including revision/re-submission cycles.**
+     Even if `revision_round` is > 0 and admin has rejected before, you MUST
+     stop and wait. Each new submission (including revisions) requires a fresh
+     human review. Never auto-complete a Solforge task without an explicit
+     ACCEPTED DM from admin.
    - Do NOT update meta.json to completed yet — human review comes first.
    - Do NOT remove from state.json.
+   - If `revision_round` is present and > 0, include it in the notification:
+     `Task [{task-id}]: {title} (revision round {N}) is ready for re-review.`
    - Notify admin: the task is ready for review. Read `SOUL.md` first for persona/language, then resolve channel:
      ```bash
      bash /opt/hiclaw/agent/skills/task-management/scripts/resolve-notify-channel.sh

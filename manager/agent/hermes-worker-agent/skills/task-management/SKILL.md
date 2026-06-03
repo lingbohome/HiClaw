@@ -94,9 +94,13 @@ When your coordinator asks you to revise a previously submitted task (same task-
 
 2. Read `rejection_reason` from the output — this tells you what needs to be changed.
 
-3. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — update the existing one as you make progress.
+3. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — append new checkbox steps for the revision work at the bottom of the existing plan:
 
-4. Update plan.md steps if needed:
+   ```markdown
+   - [ ] Revision: {describe what you changed based on rejection_reason}
+   ```
+
+4. Mark revision steps as you complete them:
    ```bash
    hiclaw-taskflow mark-step {task-id} <step-index> x --sync
    ```
