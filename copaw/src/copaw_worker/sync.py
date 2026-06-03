@@ -298,8 +298,15 @@ class FileSync:
             controller_url,
         )
         if self._k8s_mode:
-            logger.info("_ensure_alias: k8s mode, skipping mc alias set (mc-wrapper handles credentials)")
-            self._alias_set = True
+            # K8s mode uses static credentials injected by the controller
+            # (same as local mode). Still need to set the mc alias — the
+            # mc-wrapper only handles credential refresh for cloud STS.
+            logger.info("_ensure_alias: k8s mode, setting static alias (mc-wrapper handles credential lifecycle)")
+            if not self._alias_set:
+                _mc("alias", "set", _MC_ALIAS, self.endpoint, self.access_key, self.secret_key,
+                    check=True)
+                self._alias_set = True
+                logger.info("_ensure_alias: static alias ready alias_set=%s", self._alias_set)
             return
         if self._cloud_mode:
             logger.info("_ensure_alias: credential path=sts, refreshing MC_HOST_%s", _MC_ALIAS)
