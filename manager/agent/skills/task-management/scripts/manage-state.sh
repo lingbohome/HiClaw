@@ -132,6 +132,20 @@ action_complete() {
         return 0
     fi
 
+    # Solforge task gate: refuse to complete without explicit human acceptance.
+    # Manager must set human_accepted=true in meta.json (triggered by ACCEPTED DM)
+    # before this script will allow the task to be removed from active state.
+    local meta_file="/root/hiclaw-fs/shared/tasks/${TASK_ID}/meta.json"
+    if [ -f "$meta_file" ]; then
+        local solforge_ref human_accepted
+        solforge_ref=$(jq -r '.solforge_ref // empty' "$meta_file" 2>/dev/null)
+        human_accepted=$(jq -r '.human_accepted // false' "$meta_file" 2>/dev/null)
+        if [ -n "$solforge_ref" ] && [ "$human_accepted" != "true" ]; then
+            echo "BLOCKED: Solforge task $TASK_ID has not been accepted by admin. Cannot move to completed until admin explicitly accepts via Console."
+            exit 1
+        fi
+    fi
+
     local tmp
     tmp=$(mktemp)
     jq --arg id "$TASK_ID" --arg ts "$(_ts)" \

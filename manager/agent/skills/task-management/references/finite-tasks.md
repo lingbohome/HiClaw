@@ -138,6 +138,7 @@ When you receive a DM containing `[NOTICE] Task [...] has been ACCEPTED`:
 
 3. Update `meta.json`:
    - `status` → `completed`
+   - `human_accepted` → `true`  **(required — gates state.json removal)**
    - Fill `completed_at` with current ISO-8601 timestamp
    - Push back to MinIO
 
