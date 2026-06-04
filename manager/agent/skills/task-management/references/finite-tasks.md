@@ -212,3 +212,79 @@ shared/tasks/{task-id}/
 ├── result.md     # Worker-written final result
 └── *             # Intermediate artifacts
 ```
+
+## meta.json field reference
+
+Every field this file may contain across the full task lifecycle.
+**Only use fields listed here — do not invent new ones.**
+
+### Required on creation (always write these)
+
+| Field | Type | Example | Who writes | Notes |
+|-------|------|---------|------------|-------|
+| `task_id` | string | `"task-20260603-160100"` | Manager | Format: `task-YYYYMMDD-HHMMSS` |
+| `title` | string | `"Implement login page"` | Manager | Task title |
+| `type` | string | `"finite"` | Manager | Always `"finite"` for this flow |
+| `status` | string | `"assigned"` | Manager → Worker → Manager | See status lifecycle below |
+| `assigned_to` | string | `"code-worker"` | Manager | Worker CR name (no `@` prefix) |
+| `room_id` | string | `"!abc123:matrix.org"` | Manager | Worker's Matrix room ID (from `hiclaw get workers -o json`) |
+| `assigned_at` | string | `"2026-06-03T16:01:00Z"` | Manager | ISO-8601 UTC |
+
+### Solforge tasks only
+
+| Field | Type | Example | Who writes | Notes |
+|-------|------|---------|------------|-------|
+| `solforge_ref` | string | `"sol-20260603-000108"` | Manager | Present only for Solforge-originated tasks |
+
+### Worker lifecycle (written by Worker via hiclaw-taskflow / taskflow)
+
+| Field | Type | Example | Who writes | Notes |
+|-------|------|---------|------------|-------|
+| `acknowledged_at` | string | `"2026-06-03T16:02:00Z"` | Worker (ack) | Set when Worker calls `ack` |
+| `submitted_at` | string | `"2026-06-03T16:05:00Z"` | Worker (submit) | Set when Worker calls `submit` |
+
+### Manager completion (written ONLY in "On human accept" or for non-Solforge tasks)
+
+| Field | Type | Example | Who writes | Notes |
+|-------|------|---------|------------|-------|
+| `completed_at` | string | `"2026-06-03T16:10:00Z"` | Manager | ISO-8601 UTC. Only after human accept for Solforge tasks |
+| `human_accepted` | boolean | `true` | Manager | **Required for Solforge tasks** before `manage-state.sh complete` will succeed |
+
+### Revision tracking (written by Manager on human reject)
+
+| Field | Type | Example | Who writes | Notes |
+|-------|------|---------|------------|-------|
+| `revision_round` | number | `1` | Manager | Increments on each rejection. 0 or absent = never rejected |
+| `rejection_reason` | string | `"Add speed control"` | Manager | Last rejection reason. Cleared on next submit? |
+| `revision_history` | array | `[{...}]` | Manager | Audit log, append-only. See sub-fields below |
+
+**`revision_history[]` entry:**
+| Sub-field | Type | Example |
+|-----------|------|---------|
+| `revision_round` | number | `1` |
+| `rejected_at` | string | `"2026-06-03T16:08:00Z"` |
+| `reason` | string | `"Add speed control"` |
+| `revised_at` | string or null | `"2026-06-03T16:12:00Z"` or `null` |
+
+### Project tasks only (NOT used by finite/standalone tasks)
+
+| Field | Type | When | Notes |
+|-------|------|------|-------|
+| `project_id` | string | DAG/Team tasks only | Set by `delegate_task()`. Absent for standalone tasks |
+| `depends_on` | string[] | DAG/Team tasks only | Task dependencies |
+
+### Status lifecycle
+
+```
+assigned ──→ in_progress ──→ submitted ──→ completed
+  (Manager)    (Worker ack)   (Worker submit)  (Manager, after human accept for Solforge)
+```
+
+**Never skip status values.** Each transition must be written explicitly.
+
+### Forbidden fields
+
+Do NOT add these to meta.json — they are not part of the schema:
+- ~~`project`~~ — use `project_id` if this is a DAG task (and only then)
+- ~~`tags`~~, ~~`priority`~~, ~~`deadline`~~ — not part of the task state machine
+- ~~`description`~~ — use `spec.md` for requirements
