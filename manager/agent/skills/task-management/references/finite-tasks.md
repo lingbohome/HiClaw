@@ -92,42 +92,17 @@ When a Worker @mentions you with task completion:
    mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ /root/hiclaw-fs/shared/tasks/{task-id}/ --overwrite
    ```
 
-2. **Check for Solforge tasks** — read `meta.json`:
-   ```bash
-   cat /root/hiclaw-fs/shared/tasks/{task-id}/meta.json
-   ```
-
-   **If meta.json has a `solforge_ref` field:**
-   - **HARD RULE — applies every time, including revision/re-submission cycles.**
-     Even if `revision_round` is > 0 and admin has rejected before, you MUST
-     stop and wait. Each new submission (including revisions) requires a fresh
-     human review. Never auto-complete a Solforge task without an explicit
-     ACCEPTED DM from admin.
-   - **Leave meta.json status as `"submitted"`.** The Worker already set this
-     status. Do NOT write `"completed"` or `completed_at`. Those fields are
-     only written in "On human accept" after the admin explicitly approves.
-   - Do NOT remove from state.json.
-   - If `revision_round` is present and > 0, include it in the notification:
-     `Task [{task-id}]: {title} (revision round {N}) is ready for re-review.`
-   - Notify admin: the task is ready for review. Read `SOUL.md` first for persona/language, then resolve channel:
-     ```bash
-     bash /opt/hiclaw/agent/skills/task-management/scripts/resolve-notify-channel.sh
-     ```
-     Send: `Task [{task-id}]: {title} is ready for your review. Worker {assigned_to} has submitted deliverables.`
-   - **STOP here** — wait for admin to Accept or Reject. Do not proceed to steps 3-5.
-     (You will receive an ACCEPTED or REJECTED DM; see "On human accept" and "On human reject" below.)
-
-   **If meta.json does NOT have `solforge_ref`:**
-   - This is a hiClaw-internal task. Proceed with normal completion (steps 3-5 below).
-
-3. Update `meta.json`: status=completed, fill completed_at. Push back to MinIO.
-4. Remove from state.json:
+2. Update `meta.json`:
+   - `status` → `completed`
+   - Fill `completed_at` with current ISO-8601 timestamp
+   - Push back to MinIO
+3. Remove from state.json:
    ```bash
    bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
      --action complete --task-id {task-id}
    ```
-5. Log to `memory/YYYY-MM-DD.md`.
-6. Notify admin — read SOUL.md first for persona/language, then resolve channel:
+4. Log to `memory/YYYY-MM-DD.md`.
+5. Notify admin — read SOUL.md first for persona/language, then resolve channel:
    ```bash
    bash /opt/hiclaw/agent/skills/task-management/scripts/resolve-notify-channel.sh
    ```
@@ -143,63 +118,6 @@ When a Worker @mentions you with task completion:
        --action set-admin-dm --room-id "<discovered-room-id>"
      ```
      After persisting, retry `resolve-notify-channel.sh` and send the notification. If discovery fails, log a warning and move on — heartbeat will catch up.
-
-## On human accept
-
-When you receive a DM containing `[NOTICE] Task [...] has been ACCEPTED`:
-
-1. Pull task directory from MinIO:
-   ```bash
-   mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ /root/hiclaw-fs/shared/tasks/{task-id}/ --overwrite
-   ```
-
-2. Verify deliverables exist — check `result.md` and any referenced deliverables.
-
-3. Update `meta.json`:
-   - `status` → `completed`
-   - `human_accepted` → `true`  **(required — gates state.json removal)**
-   - Fill `completed_at` with current ISO-8601 timestamp
-   - Push back to MinIO
-
-4. Remove from state.json:
-   ```bash
-   bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
-     --action complete --task-id {task-id}
-   ```
-
-5. Log to `memory/YYYY-MM-DD.md`.
-
-6. Notify admin (same channel resolution as normal completion): `[Task Completed] {task-id}: {title} — assigned to {worker}. Human review accepted, task finalized.`
-
-## On human reject
-
-When you receive a DM containing `[ACTION REQUIRED] Task [...] has been REJECTED`:
-
-1. **Task is STILL in state.json** — no add-finite needed. The task was never removed (see "On completion" step 2 for Solforge tasks).
-
-2. Extract the rejection reason from the DM message (after `Reason:` line).
-
-3. Pull and update `meta.json`:
-   ```bash
-   mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/meta.json /root/hiclaw-fs/shared/tasks/{task-id}/meta.json --overwrite
-   ```
-   Update:
-   - `status` → `in_progress`
-   - `revision_round` → (existing value || 0) + 1
-   - `rejection_reason` → the reason text
-   - Append to `revision_history` array: `{ "revision_round": <N>, "rejected_at": "<ISO>", "reason": "<reason>" }`
-   - Push back to MinIO
-
-4. Notify the Worker in their task room (use `assigned_to` from meta.json to get the Worker name, and `room_id` for the room):
-   ```
-   @{worker}:{domain} Task [{task-id}] needs revision.
-
-   Rejection reason: {reason}
-
-   Please pull the latest meta.json, revise the deliverables based on the feedback above, and re-submit.
-   ```
-
-5. Do NOT remove from state.json. Wait for Worker to re-submit. When they do, the task will go back through "On completion" flow (step 2 will detect `solforge_ref` again and wait for human review).
 
 ## Task directory layout
 
