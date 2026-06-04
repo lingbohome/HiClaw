@@ -14,7 +14,24 @@
    ```bash
    mkdir -p /root/hiclaw-fs/shared/tasks/{task-id}
    ```
-   Write `meta.json` (type: "finite", status: "assigned") and `spec.md` (requirements, acceptance criteria, context).
+
+   **Write `meta.json`** — use this EXACT template (replace `{...}` placeholders):
+   ```json
+   {
+     "task_id": "{task-id}",
+     "title": "{task title}",
+     "type": "finite",
+     "status": "assigned",
+     "assigned_to": "{worker-name}",
+     "room_id": "{room-id-from-step-4a}",
+     "assigned_at": "{ISO-8601-now}"
+   }
+   ```
+   **CRITICAL**: Every field is mandatory. `room_id` is required by Workers for
+   identity verification and by Solforge for Matrix room message access. If the
+   task originates from Solforge, also include `"solforge_ref": "{solforge-id}"`.
+
+   **Write `spec.md`** (requirements, acceptance criteria, context).
 
 3. Push to MinIO **immediately** — Worker cannot file-sync until files are in MinIO:
    ```bash
@@ -86,7 +103,9 @@ When a Worker @mentions you with task completion:
      stop and wait. Each new submission (including revisions) requires a fresh
      human review. Never auto-complete a Solforge task without an explicit
      ACCEPTED DM from admin.
-   - Do NOT update meta.json to completed yet — human review comes first.
+   - **Leave meta.json status as `"submitted"`.** The Worker already set this
+     status. Do NOT write `"completed"` or `completed_at`. Those fields are
+     only written in "On human accept" after the admin explicitly approves.
    - Do NOT remove from state.json.
    - If `revision_round` is present and > 0, include it in the notification:
      `Task [{task-id}]: {title} (revision round {N}) is ready for re-review.`
