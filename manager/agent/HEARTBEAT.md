@@ -37,6 +37,13 @@ Steps 2, 2b, 3, 4, and 6 send into Matrix **group** rooms. For each send, use th
 Iterate over entries in `active_tasks` with `"type": "finite"`:
 
 - Read `assigned_to`, `room_id`, and `project_room_id` (if present) from the entry
+- **Check the task's current status** — pull meta.json from MinIO:
+  ```bash
+  mc cat ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/meta.json | jq -r '.status'
+  ```
+  - `"submitted"` — **Worker is done. Do NOT ping them.** The task is waiting for admin review. Skip to Step 7 and mention this task in the admin report as "awaiting review."
+  - `"completed"` — task is already finished but not yet removed from state.json. Run `manage-state.sh --action complete`.
+  - `"in_progress"` or `"assigned"` — Worker is still working. Continue with the checks below.
 - Determine the target room: use `project_room_id` if available, otherwise use `room_id`
 - **Before sending any message**, ensure the Worker's container is running:
   ```bash
@@ -55,10 +62,6 @@ Iterate over entries in `active_tasks` with `"type": "finite"`:
   ```
 - Determine if the Worker is making normal progress based on their reply
 - If the Worker has not responded (no response for more than one heartbeat cycle), flag the anomaly in the Room and notify the human admin (see Step 7)
-- If the Worker has replied that the task is complete but meta.json has not been updated, proactively update meta.json (status → completed, fill in completed_at), and remove the entry from `active_tasks`:
-  ```bash
-  bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh --action complete --task-id {task-id}
-  ```
 
 ---
 
