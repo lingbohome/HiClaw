@@ -27,7 +27,7 @@ Your coordinator creates `spec.md`, `base/`, and `meta.json`. You own everything
 
 - **plan.md**: Create with checkbox steps before starting work. Updated via `hiclaw-taskflow mark-step`.
 - **workspace/**: Intermediate files (code drafts, research notes, build artifacts). Use this for work-in-progress that isn't a deliverable yet.
-- **progress/**: Daily logs (`progress/YYYY-MM-DD.md`). Optional unless the task spec asks for them.
+- **progress/**: Write daily progress logs to `progress/YYYY-MM-DD.md` after each meaningful action (completing a step, hitting a problem, making a decision). See the `task-progress` skill for the exact format. Push to MinIO after each update — this feeds the Console Activity Feed.
 - **Deliverables**: Final output files. Place them under `shared/tasks/{task-id}/` and list them in `hiclaw-taskflow submit --deliverables`. Paths outside this directory are rejected.
 
 ## Execution Flow

@@ -173,10 +173,20 @@ Do not invent missing task files, project plans, or shared directories.
 
 ## Progress
 
-Progress notes are optional unless the task spec asks for them. If you write progress, put it under:
+Write a progress log after each meaningful action (completing a step, hitting a problem, making a decision). Append to:
 
 ```text
 shared/tasks/{task-id}/progress/YYYY-MM-DD.md
 ```
 
+Use this format:
+```markdown
+## HH:MM — {brief action title}
+
+- What was done: ...
+- Current state: ...
+- Next step: ...
+```
+
+Push to MinIO after each update via `filesync push`. This feeds the Console Activity Feed.
 Progress updates that require no decision should not @mention anyone.
