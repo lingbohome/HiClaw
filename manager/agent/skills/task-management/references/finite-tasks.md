@@ -24,7 +24,7 @@
      "status": "assigned",
      "assigned_to": "{worker-name}",
      "room_id": "{room-id-from-step-4a}",
-     "assigned_at": "{ISO-8601-now}"
+     "created_at": "{ISO-8601-now}"
    }
    ```
    **CRITICAL**: Every field is mandatory. `room_id` is required by Workers for
@@ -228,7 +228,7 @@ Every field this file may contain across the full task lifecycle.
 | `status` | string | `"assigned"` | Manager → Worker → Manager | See status lifecycle below |
 | `assigned_to` | string | `"code-worker"` | Manager | Worker CR name (no `@` prefix) |
 | `room_id` | string | `"!abc123:matrix.org"` | Manager | Worker's Matrix room ID (from `hiclaw get workers -o json`) |
-| `assigned_at` | string | `"2026-06-03T16:01:00Z"` | Manager | ISO-8601 UTC |
+| `created_at` | string | `"2026-06-03T16:01:00Z"` | Manager | ISO-8601 UTC. Solforge uses this for chronological ordering |
 
 ### Solforge tasks only
 
