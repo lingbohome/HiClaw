@@ -92,32 +92,73 @@ When a Worker @mentions you with task completion:
    mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ /root/hiclaw-fs/shared/tasks/{task-id}/ --overwrite
    ```
 
-2. Update `meta.json`:
+2. Notify admin — the task is ready for review. Read `SOUL.md` first for persona/language, then resolve channel:
+   ```bash
+   bash /opt/hiclaw/agent/skills/task-management/scripts/resolve-notify-channel.sh
+   ```
+   Send: `Task [{task-id}]: {title} is ready for your review. Worker {assigned_to} has submitted deliverables.`
+   If `revision_round` is > 0: `Task [{task-id}]: {title} (revision round {N}) is ready for re-review.`
+
+3. **DONE.** Do nothing else. Do NOT update meta.json. Do NOT touch state.json. The admin will send an ACCEPTED or REJECTED DM — handle those per the sections below.
+
+There is no step 4. Applies every time, including revision/re-submission.
+
+## On human accept
+
+When you receive a DM containing `[NOTICE] Task [...] has been ACCEPTED`:
+
+1. Pull task directory from MinIO:
+   ```bash
+   mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ /root/hiclaw-fs/shared/tasks/{task-id}/ --overwrite
+   ```
+
+2. Verify deliverables exist — check `result.md` and any referenced deliverables.
+
+3. Update `meta.json`:
    - `status` → `completed`
+   - `human_accepted` → `true`  **(required — gates state.json removal)**
    - Fill `completed_at` with current ISO-8601 timestamp
    - Push back to MinIO
-3. Remove from state.json:
+
+4. Remove from state.json:
    ```bash
    bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
      --action complete --task-id {task-id}
    ```
-4. Log to `memory/YYYY-MM-DD.md`.
-5. Notify admin — read SOUL.md first for persona/language, then resolve channel:
+
+5. Log to `memory/YYYY-MM-DD.md`.
+
+6. Notify admin: `[Task Completed] {task-id}: {title} — assigned to {worker}. Human review accepted, task finalized.`
+
+## On human reject
+
+When you receive a DM containing `[ACTION REQUIRED] Task [...] has been REJECTED`:
+
+1. **Task is STILL in state.json** — no add-finite needed. (It was never removed — see "On completion" above.)
+
+2. Extract the rejection reason from the DM message (after `Reason:` line).
+
+3. Pull and update `meta.json`:
    ```bash
-   bash /opt/hiclaw/agent/skills/task-management/scripts/resolve-notify-channel.sh
+   mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/meta.json /root/hiclaw-fs/shared/tasks/{task-id}/meta.json --overwrite
    ```
-   Re-read runtime if needed: `hiclaw get managers -o json | jq -r '.managers[0].runtime'`.
+   Update:
+   - `status` → `in_progress`
+   - `revision_round` → (existing value || 0) + 1
+   - `rejection_reason` → the reason text
+   - Append to `revision_history` array: `{ "revision_round": <N>, "rejected_at": "<ISO>", "reason": "<reason>" }`
+   - Push back to MinIO
 
-   - **`openclaw`:** If `channel` is not `"none"`, use the **message** tool with the resolved `channel` and `target` (same mapping as channel-management / primary-channel docs). Send `[Task Completed] {task-id}: {title} — assigned to {worker}. {summary}`.
+4. Notify the Worker in their task room (use `assigned_to` from meta.json to get the Worker name, and `room_id` for the room):
+   ```
+   @{worker}:{domain} Task [{task-id}] needs revision.
 
-   - **`copaw`:** If `channel` is not `"none"`, use **`copaw channels send`** with the resolved channel and target (Matrix: `--channel matrix`, `--target-session` = room id without `room:` prefix when the script returns `room:!...`, `--target-user` = admin Matrix ID). If you are **in an admin DM session** for this turn, do **not** CLI-send to the admin DM — put `[Task Completed] ...` in your **final reply only** (avoids duplicate messages; see copaw-manager-agent AGENTS.md). If you are in a Worker or project room session, use `copaw channels send` per the resolved JSON.
+   Rejection reason: {reason}
 
-   - If `channel` is `"none"`: the admin DM room is not yet cached. Discover it now — list joined rooms, find the DM room with exactly 2 members (you and admin), then persist:
-     ```bash
-     bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
-       --action set-admin-dm --room-id "<discovered-room-id>"
-     ```
-     After persisting, retry `resolve-notify-channel.sh` and send the notification. If discovery fails, log a warning and move on — heartbeat will catch up.
+   Please pull the latest meta.json, revise the deliverables based on the feedback above, and re-submit.
+   ```
+
+5. Do NOT remove from state.json. Wait for Worker to re-submit. Then return to "On completion" above.
 
 ## Task directory layout
 

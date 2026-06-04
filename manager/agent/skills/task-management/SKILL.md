@@ -24,8 +24,7 @@ Read the relevant doc **before** executing. Do not load all of them.
 | Situation | Read |
 |---|---|
 | Admin gives task, no Worker specified | `references/worker-selection.md` |
-| Worker reports completion, task is NOT from Solforge (meta.json has no `solforge_ref`) | `references/finite-tasks.md` |
-| Worker reports completion, task IS from Solforge (meta.json has `solforge_ref`) | `references/solforge-review.md` |
-| Received ACCEPTED or REJECTED DM about a Solforge task | `references/solforge-review.md` |
+| Assign a one-off task or handle completion | `references/finite-tasks.md` |
+| Received ACCEPTED or REJECTED DM about a task | `references/finite-tasks.md` |
 | Create or manage a recurring scheduled task | `references/infinite-tasks.md` |
 | Need to update state.json or resolve notification channel | `references/state-management.md` |
