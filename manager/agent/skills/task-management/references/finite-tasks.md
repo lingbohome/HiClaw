@@ -282,9 +282,24 @@ assigned ──→ in_progress ──→ submitted ──→ completed
 
 **Never skip status values.** Each transition must be written explicitly.
 
-### Forbidden fields
+### Optional enrichment (free-form, additive only)
 
-Do NOT add these to meta.json — they are not part of the schema:
-- ~~`project`~~ — use `project_id` if this is a DAG task (and only then)
-- ~~`tags`~~, ~~`priority`~~, ~~`deadline`~~ — not part of the task state machine
-- ~~`description`~~ — use `spec.md` for requirements
+You may add extra fields for display/classification purposes. These are never
+required and must not affect the task state machine. Examples:
+
+| Field | Type | Example | Purpose |
+|-------|------|---------|---------|
+| `tags` | string[] | `["frontend", "react", "urgent"]` | Category labels for Console filtering/display |
+| `description` | string | `"Brief one-liner"` | Short summary for list views (spec.md is the full version) |
+| `priority` | string | `"high"` | Display hint |
+| `notes` | string[] | `["Depends on API v2"]` | Manager's internal notes |
+
+**Rule**: Any field not listed in Required/Creation is fine as long as it:
+1. Doesn't duplicate or conflict with a Required field name
+2. Doesn't change the state machine behavior
+3. Is additive (removing it wouldn't break anything)
+
+### Forbidden (will break the state machine)
+
+- ~~`project`~~ — conflicts with `project_id`. Use `project_id` if this is a DAG task
+- ~~`state`~~ — conflicts with `status`
