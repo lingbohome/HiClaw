@@ -94,11 +94,16 @@ When your coordinator asks you to revise a previously submitted task (same task-
 
 2. Read `rejection_reason` from the output — this tells you what needs to be changed.
 
-3. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — append new checkbox steps for the revision work at the bottom of the existing plan:
+3. Revise your deliverables in the existing `workspace/` directory. Do NOT create a new plan.md — append revision steps at the bottom:
 
    ```markdown
    - [ ] Revision: {describe what you changed based on rejection_reason}
    ```
+
+   **Always add at least one revision step.** The only exception is a trivial
+   one-line fix (typo, format, phrasing). If the change involves any new logic,
+   behavior, or content → add a step. When in doubt, add it — marking it done
+   is cheap; a missing step can't be recovered.
 
 4. Mark revision steps as you complete them:
    ```bash
