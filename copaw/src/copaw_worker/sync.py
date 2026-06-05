@@ -827,6 +827,26 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
         except Exception as exc:
             logger.debug("push_local: failed for %s: %s", rel, exc)
 
+    # ── Task file sync (Local->MinIO) ─────────────────────────────────
+    # Push changed task files to the collaborative shared space so the
+    # Console sees Worker progress without waiting for an explicit push.
+    # Runs as part of the push loop (every ~5s) but mirrors a separate path.
+    task_dir = sync.shared_dir / "tasks"
+    if task_dir.exists():
+        try:
+            shared_remote = sync._get_shared_remote()
+            _mc(
+                "mirror",
+                str(task_dir) + "/",
+                shared_remote + "tasks/",
+                "--overwrite",
+                "--exclude", "spec.md",
+                "--exclude", "base/**",
+                check=False,
+            )
+        except Exception:
+            pass  # best-effort
+
     return pushed
 
 
