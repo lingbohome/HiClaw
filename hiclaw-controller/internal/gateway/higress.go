@@ -320,13 +320,47 @@ func (c *HigressClient) ExposePort(ctx context.Context, req PortExposeRequest) e
 	if err := c.ensureDomain(ctx, domain); err != nil {
 		return fmt.Errorf("expose port %d: %w", req.Port, err)
 	}
-	if err := c.ensureServiceSource(ctx, svcSrc, dnsHost, req.Port, "http"); err != nil {
-		return fmt.Errorf("expose port %d: %w", req.Port, err)
-	}
-	if err := c.ensureRoute(ctx, routeN, []string{domain}, svcSrc+".dns", req.Port, "/"); err != nil {
-		return fmt.Errorf("expose port %d: %w", req.Port, err)
+
+	// Detect static (IP-based) vs DNS service source.
+	// K8s pods don't have stable DNS via .local — use the pod IP directly
+	// with a static service source. Docker/embedded mode uses DNS resolution.
+	if isIPv4(dnsHost) {
+		// Delete-then-recreate to handle pod IP changes across restarts
+		c.deleteServiceSource(ctx, svcSrc)
+		if err := c.ensureStaticServiceSource(ctx, svcSrc, dnsHost, req.Port); err != nil {
+			return fmt.Errorf("expose port %d: %w", req.Port, err)
+		}
+		// Route to static service source (suffix .static instead of .dns)
+		if err := c.ensureRoute(ctx, routeN, []string{domain}, svcSrc+".static", req.Port, "/"); err != nil {
+			return fmt.Errorf("expose port %d: %w", req.Port, err)
+		}
+	} else {
+		if err := c.ensureServiceSource(ctx, svcSrc, dnsHost, req.Port, "http"); err != nil {
+			return fmt.Errorf("expose port %d: %w", req.Port, err)
+		}
+		if err := c.ensureRoute(ctx, routeN, []string{domain}, svcSrc+".dns", req.Port, "/"); err != nil {
+			return fmt.Errorf("expose port %d: %w", req.Port, err)
+		}
 	}
 	return nil
+}
+
+// isIPv4 reports whether s is a bare IPv4 address (no port, no protocol).
+func isIPv4(s string) bool {
+	if s == "" {
+		return false
+	}
+	// Quick heuristic: 3 dots, only digits and dots
+	dots := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '.' {
+			dots++
+		} else if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return dots == 3
 }
 
 func (c *HigressClient) UnexposePort(ctx context.Context, req PortExposeRequest) error {
