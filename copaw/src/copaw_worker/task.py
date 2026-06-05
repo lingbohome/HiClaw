@@ -76,6 +76,7 @@ class TaskMeta:
     assigned_at: str | None = None
     acknowledged_at: str | None = None
     submitted_at: str | None = None
+    preview: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,7 @@ class TaskResult:
     summary: str
     deliverables: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    preview: dict | None = None
 
 
 class TaskStore(Protocol):
@@ -158,6 +160,7 @@ class FileSystemTaskStore:
             assigned_at=data.get("assigned_at"),
             acknowledged_at=data.get("acknowledged_at"),
             submitted_at=data.get("submitted_at"),
+            preview=data.get("preview"),
         )
 
     def write_task_meta(self, meta: TaskMeta) -> None:
@@ -670,6 +673,8 @@ def submit_task(
     _auto_complete_task_plan(store, task_id)
     meta.status = "submitted"
     meta.submitted_at = _now()
+    if result is not None and result.preview is not None:
+        meta.preview = dict(result.preview)
     store.write_task_meta(meta)
     return meta
 
@@ -936,6 +941,12 @@ def render_task_result(result: TaskResult) -> str:
         "DELIVERABLES:",
     ]
     lines.extend(f"- {item}" for item in result.deliverables)
+    # Preview port as a special deliverable entry
+    if result.preview and isinstance(result.preview, dict) and result.preview.get("port"):
+        port = result.preview["port"]
+        desc = result.preview.get("description", "")
+        label = f" ({desc})" if desc else ""
+        lines.append(f"- [预览] preview:{port}{label}")
     if result.notes:
         lines.extend(["", "NOTES:"])
         lines.extend(f"- {item}" for item in result.notes)

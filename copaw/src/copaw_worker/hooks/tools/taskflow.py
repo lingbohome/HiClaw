@@ -161,11 +161,25 @@ def _task_result_from_payload(payload: dict[str, Any]) -> TaskResult | None:
     status = _required_str(payload, "status")
     if status not in RESULT_STATUSES:
         raise TaskflowError(f"invalid result status: {status}")
+
+    preview: dict | None = None
+    preview_raw = payload.get("preview")
+    if preview_raw is not None:
+        if not isinstance(preview_raw, dict):
+            raise TaskflowError("preview must be an object with 'port' and optional 'description'")
+        port = preview_raw.get("port")
+        if not isinstance(port, int) or port < 1 or port > 65535:
+            raise TaskflowError(
+                f"preview.port must be a positive integer (1-65535), got: {port!r}",
+            )
+        preview = {"port": port, "description": str(preview_raw.get("description", ""))}
+
     return TaskResult(
         status=status,
         summary=_required_str(payload, "summary"),
         deliverables=_coerce_str_list(payload, "deliverables"),
         notes=_coerce_str_list(payload, "notes"),
+        preview=preview,
     )
 
 

@@ -73,6 +73,16 @@ Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` 
    `meta.json.room_id` is the task's assignment and delivery room. Use it only when cross-room delivery is truly needed. If it is missing, stop and report a blocker in the current session instead of guessing another room.
 
 3. Create `plan.md` with checkbox steps, then execute the task. After each step, mark it complete via `taskflow` `action=mark_step`. Keep deliverables inside `shared/tasks/{task-id}/`. When you submit, `submit_task` auto-completes any remaining plan.md checkboxes.
+
+   **Preview check (mandatory before submit):**
+
+   If your workspace contains a runnable web application, API service, or dev server:
+   1. Start the dev server on an available port.
+   2. Verify it responds to HTTP requests locally (e.g., `curl http://localhost:<port>`).
+   3. Include a `preview` object in the submit payload with `port` and optional `description`.
+
+   If your deliverable is static files only (reports, documents, single HTML that needs no server), skip `preview`.
+
 4. Submit the task result with `taskflow`. This writes `shared/tasks/{task-id}/result.md`, marks local task state submitted, pushes the task directory to storage, and verifies `result.md` exists on storage:
 
    ```json
@@ -84,7 +94,11 @@ Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` 
        "summary": "<one paragraph summary>",
        "deliverables": [
          "shared/tasks/{task-id}/workspace/<file>"
-       ]
+       ],
+       "preview": {
+         "port": 3000,
+         "description": "React admin dashboard"
+       }
      }
    }
    ```
