@@ -293,6 +293,22 @@ def write_meta_status(task_dir: Path, status: str) -> dict:
     return meta
 
 
+def write_meta_preview(task_dir: Path, preview: dict) -> dict:
+    """Write preview field to meta.json. Returns the updated dict."""
+    meta_path = task_dir / "meta.json"
+    if not meta_path.exists():
+        raise FileNotFoundError(f"meta.json not found at {meta_path}")
+
+    raw = meta_path.read_text(encoding="utf-8-sig")
+    meta = json.loads(raw)
+    meta["preview"] = preview
+    meta_path.write_text(
+        json.dumps(meta, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return meta
+
+
 def ack_task(
     task_dir: Path, actor: str | None = None, verify: bool = True
 ) -> dict:
@@ -402,6 +418,18 @@ def validate_task_result(task_id: str, result: dict) -> list[str]:
                 f"deliverable path must be under shared/tasks/{task_id}/: {path}"
             )
 
+    # preview is optional but must have a valid port if present
+    preview = result.get("preview")
+    if preview is not None:
+        if not isinstance(preview, dict):
+            errors.append("preview must be an object with 'port' and optional 'description'")
+        else:
+            port = preview.get("port")
+            if not isinstance(port, int) or port <= 0 or port > 65535:
+                errors.append(
+                    f"preview.port must be a positive integer (1-65535), got: {port!r}"
+                )
+
     return errors
 
 
@@ -427,6 +455,14 @@ def render_task_result(result: dict) -> str:
             lines.append(f"- {d}")
     else:
         lines.append("(none)")
+
+    # Preview port as a special deliverable entry
+    preview = result.get("preview")
+    if preview and isinstance(preview, dict) and preview.get("port"):
+        port = preview["port"]
+        desc = preview.get("description", "")
+        label = f" ({desc})" if desc else ""
+        lines.append(f"- [预览] preview:{port}{label}")
 
     notes = result.get("notes", [])
     lines.append("**notes**:")

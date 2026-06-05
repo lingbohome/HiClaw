@@ -34,6 +34,7 @@ from hiclaw_taskflow.plan import (
     resolve_actor,
     safe_task_id,
     validate_task_result,
+    write_meta_preview,
     write_meta_status,
     write_plan,
     write_task_result,
@@ -128,6 +129,8 @@ def _cmd_submit(args: argparse.Namespace) -> int:
             print(f"  Result summary: {args.summary or '(none)'}")
             print(f"  Deliverables: {args.deliverables or '[]'}")
             print(f"  Notes: {args.notes or '[]'}")
+        if args.preview:
+            print(f"  Preview: port={args.preview[0]} desc={args.preview[1] if len(args.preview) > 1 else '(none)'}")
         print(f"  Sync: {args.sync}")
         return 0
 
@@ -147,6 +150,27 @@ def _cmd_submit(args: argparse.Namespace) -> int:
             f"hiclaw-taskflow: no plan.md found for task {args.task_id}, "
             f"skipping plan auto-complete"
         )
+
+    # parse --preview (before result writing so it goes into result.md)
+    preview = None
+    if args.preview:
+        try:
+            port = int(args.preview[0])
+            if port < 1 or port > 65535:
+                print(
+                    f"hiclaw-taskflow: ERROR — preview port must be 1-65535, got {port}",
+                    file=sys.stderr,
+                )
+                return 1
+            description = args.preview[1] if len(args.preview) > 1 else ""
+            preview = {"port": port, "description": description}
+        except (ValueError, IndexError) as exc:
+            print(
+                f"hiclaw-taskflow: ERROR — --preview requires PORT (integer) "
+                f"[DESCRIPTION]: {exc}",
+                file=sys.stderr,
+            )
+            return 1
 
     # write result.md if structured result provided
     if args.status:
@@ -172,6 +196,9 @@ def _cmd_submit(args: argparse.Namespace) -> int:
             "deliverables": deliverables,
             "notes": notes,
         }
+        if preview is not None:
+            result["preview"] = preview
+
         try:
             write_task_result(task_dir, result, safe_task_id(args.task_id))
             print(
@@ -190,6 +217,13 @@ def _cmd_submit(args: argparse.Namespace) -> int:
             f"hiclaw-taskflow: meta.json status → submitted "
             f"(submitted_at: {meta.get('submitted_at', 'N/A')})"
         )
+        if preview is not None:
+            write_meta_preview(task_dir, preview)
+            print(
+                f"hiclaw-taskflow: meta.json preview → "
+                f"port={preview['port']}"
+                f"{' (' + preview['description'] + ')' if preview.get('description') else ''}"
+            )
     except FileNotFoundError:
         print(
             f"hiclaw-taskflow: WARNING — meta.json not found for task "
@@ -411,6 +445,11 @@ def main(argv: list[str] | None = None) -> None:
     )
     p_submit.add_argument(
         "--notes", help="JSON array or comma-separated notes"
+    )
+    p_submit.add_argument(
+        "--preview", nargs="+", metavar=("PORT", "DESCRIPTION"),
+        help="Declare a preview URL for human review "
+             "(e.g. --preview 3000 'React admin dashboard')",
     )
     p_submit.set_defaults(func=_cmd_submit)
 

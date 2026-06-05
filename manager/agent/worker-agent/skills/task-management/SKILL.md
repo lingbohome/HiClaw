@@ -54,6 +54,15 @@ Write progress notes under `progress/YYYY-MM-DD.md`. Progress updates that requi
 
 ### 3. Submit
 
+**Preview check (mandatory before submit):**
+
+If your workspace contains a runnable web application, API service, or dev server:
+1. Start the dev server on an available port.
+2. Verify it responds to HTTP requests locally (e.g., `curl http://localhost:<port>`).
+3. Include `--preview <port> "<brief description>"` in your submit command.
+
+If your deliverable is static files only (reports, documents, single HTML that needs no server), skip `--preview`.
+
 Write your result and finalize:
 
 ```bash
@@ -61,6 +70,7 @@ hiclaw-taskflow submit {task-id} \
   --status SUCCESS \
   --summary "<one paragraph summary>" \
   --deliverables "shared/tasks/{task-id}/output/file1, shared/tasks/{task-id}/output/file2" \
+  --preview 3000 "React admin dashboard" \
   --sync
 ```
 
