@@ -54,14 +54,19 @@ Write progress notes under `progress/YYYY-MM-DD.md`. Progress updates that requi
 
 ### 3. Submit
 
-**Preview check (mandatory before submit):**
+**Preview check (must complete before submit):**
 
-If your workspace contains a runnable web application, API service, or dev server:
-1. Start the dev server on an available port.
-2. Verify it responds to HTTP requests locally (e.g., `curl http://localhost:<port>`).
+If you built a web application, API service, or HTTP server:
+1. Start it bound to `0.0.0.0` (not localhost / 127.0.0.1 — the preview URL
+   reaches your container from outside, so loopback-only won't work).
+   Common frameworks: `vite --host 0.0.0.0`, `next dev -H 0.0.0.0`,
+   `uvicorn main:app --host 0.0.0.0`, `flask run --host=0.0.0.0`.
+2. Wait for its startup log line, then verify:
+   `curl -s http://0.0.0.0:<port>` must respond.
 3. Include `--preview <port> "<brief description>"` in your submit command.
 
-If your deliverable is static files only (reports, documents, single HTML that needs no server), skip `--preview`.
+If your deliverable is static files only (reports, documents, images,
+single HTML), or there is no HTTP server to start, skip `--preview`.
 
 Write your result and finalize:
 

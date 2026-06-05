@@ -74,14 +74,20 @@ Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` 
 
 3. Create `plan.md` with checkbox steps, then execute the task. After each step, mark it complete via `taskflow` `action=mark_step`. Keep deliverables inside `shared/tasks/{task-id}/`. When you submit, `submit_task` auto-completes any remaining plan.md checkboxes.
 
-   **Preview check (mandatory before submit):**
+   **Preview check (must complete before submit):**
 
-   If your workspace contains a runnable web application, API service, or dev server:
-   1. Start the dev server on an available port.
-   2. Verify it responds to HTTP requests locally (e.g., `curl http://localhost:<port>`).
-   3. Include a `preview` object in the submit payload with `port` and optional `description`.
+   If you built a web application, API service, or HTTP server:
+   1. Start it bound to `0.0.0.0` (not localhost / 127.0.0.1 — the preview URL
+      reaches your container from outside, so loopback-only won't work).
+      Common frameworks: `vite --host 0.0.0.0`, `next dev -H 0.0.0.0`,
+      `uvicorn main:app --host 0.0.0.0`, `flask run --host=0.0.0.0`.
+   2. Wait for its startup log line, then verify:
+      `curl -s http://0.0.0.0:<port>` must respond.
+   3. Include a `preview` object in the submit payload with `port` and
+      optional `description`.
 
-   If your deliverable is static files only (reports, documents, single HTML that needs no server), skip `preview`.
+   If your deliverable is static files only (reports, documents, images,
+   single HTML), or there is no HTTP server to start, skip `preview`.
 
 4. Submit the task result with `taskflow`. This writes `shared/tasks/{task-id}/result.md`, marks local task state submitted, pushes the task directory to storage, and verifies `result.md` exists on storage:
 
