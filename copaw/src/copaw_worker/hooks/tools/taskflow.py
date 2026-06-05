@@ -228,7 +228,7 @@ async def taskflow(
             )
             task_path = f"shared/tasks/{task_id}/"
             sync = create_sync()
-            sync.push_shared_path(task_path)
+            sync.push_shared_path(task_path, exclude=["spec.md", "base/", "node_modules/**"])
             return _ok(action=action, task=asdict(meta), synced=True)
 
         if action == "check_task":
@@ -258,7 +258,7 @@ async def taskflow(
             _require_ack_preconditions(store.read_task_meta(task_id), actor)
             spec = store.read_task_spec(task_id)
             meta = ack_task(store, task_id=task_id, actor=actor)
-            sync.push_shared_path(task_path, exclude=["spec.md", "base/"])
+            sync.push_shared_path(task_path, exclude=["spec.md", "base/", "node_modules/**"])
             return _ok(action=action, task=asdict(meta), spec=spec)
 
         if action == "submit_task":
@@ -279,7 +279,7 @@ async def taskflow(
             task_path = f"shared/tasks/{task_id}/"
             result_path = f"shared/tasks/{task_id}/result.md"
             sync = create_sync()
-            sync.push_shared_path(task_path, exclude=["spec.md", "base/"])
+            sync.push_shared_path(task_path, exclude=["spec.md", "base/", "node_modules/**"])
             sync.stat_shared_path(result_path)
             response_payload: dict[str, Any] = {
                 "action": action,
@@ -316,7 +316,7 @@ async def taskflow(
             sync = create_sync()
             sync.pull_shared_path(task_path)
             updated_plan = mark_step_in_plan(store, task_id=task_id, step_index=step_index, marker=marker)
-            sync.push_shared_path(task_path, exclude=["spec.md", "base/"])
+            sync.push_shared_path(task_path, exclude=["spec.md", "base/", "node_modules/**"])
             return _ok(
                 action=action,
                 taskId=task_id,

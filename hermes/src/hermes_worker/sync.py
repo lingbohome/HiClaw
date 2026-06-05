@@ -614,6 +614,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
                 "--overwrite",
                 "--exclude", "spec.md",
                 "--exclude", "base/**",
+                "--exclude", "node_modules/**",
                 check=False,  # non-fatal: don't break push over task sync failures
             )
         except Exception:

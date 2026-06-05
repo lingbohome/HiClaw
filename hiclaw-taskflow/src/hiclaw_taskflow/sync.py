@@ -71,6 +71,8 @@ def push_task(task_id: str, workspace: Path | None = None) -> dict:
         "spec.md",
         "--exclude",
         "base/",
+        "--exclude",
+        "node_modules/**",
     ]
 
     try:
