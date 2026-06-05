@@ -202,6 +202,36 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
 ) &
 log "Local->Remote change-triggered sync started (PID: $!)"
 
+# ── Task file sync (Local->Remote) ────────────────────────────────────────────
+# Push changed task files to the shared collaborative space so the Console
+# sees Worker progress (plan updates, progress logs, workspace files) without
+# waiting for an explicit hiclaw-taskflow --sync.  Complements the explicit
+# pushes that happen on ack / mark-step / submit.
+#
+# spec.md and base/ are excluded because they are Manager-managed (read-only for
+# the Worker).  Large dependency trees are excluded to keep the mirror fast.
+(
+    while true; do
+        sleep 15
+        # Only push if task files were modified since the last pull
+        TASK_CHANGED=$(find "${HICLAW_ROOT}/shared/tasks/" -type f \
+            -newer "${PULL_MARKER}" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/.git/*" \
+            -not -path "*/.cache/*" -not -path "*/.npm/*" \
+            -not -path "*/spec.md" -not -path "*/base/*" \
+            2>/dev/null | head -1)
+        if [ -n "${TASK_CHANGED}" ]; then
+            ensure_mc_credentials 2>/dev/null || true
+            mc mirror "${HICLAW_ROOT}/shared/tasks/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/" --overwrite \
+                --exclude "spec.md" --exclude "base/**" \
+                --exclude "*/node_modules/**" --exclude "*/.git/**" \
+                --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        fi
+    done
+) &
+log "Task file sync started (PID: $!, interval: 15s)"
+
 # Remote -> Local: fallback pull of Manager-managed files (safety net, every 5m)
 # Normal operation relies on on-demand pulls via file-sync skill when Manager @mentions.
 # openclaw.json uses local-first merge (see merge-openclaw-config.sh): existing
