@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 
 	v1beta1 "github.com/hiclaw/hiclaw-controller/api/v1beta1"
 	"github.com/hiclaw/hiclaw-controller/internal/gateway"
@@ -12,8 +13,14 @@ import (
 // --- Port Exposure ---
 
 // domainForExpose generates the auto domain name for a worker's exposed port.
+// The domain template is configurable via HICLAW_EXPOSE_DOMAIN_TEMPLATE.
+// Default: worker-%s-%d-preview.cloud.hropenai.cn
 func domainForExpose(workerName string, port int) string {
-	return fmt.Sprintf("worker-%s-%d-local.hiclaw.io", workerName, port)
+	tmpl := os.Getenv("HICLAW_EXPOSE_DOMAIN_TEMPLATE")
+	if tmpl == "" {
+		tmpl = "worker-%s-%d-preview.cloud.hropenai.cn"
+	}
+	return fmt.Sprintf(tmpl, workerName, port)
 }
 
 // ContainerDNSName returns the FQDN for a worker container that Higress can resolve.
@@ -104,15 +111,14 @@ func (p *Provisioner) ReconcileExpose(ctx context.Context, workerName string, de
 }
 
 // getWorkerPodIP returns the pod IP for a worker in K8s mode.
-// The pod is found by listing pods in the controller's namespace and matching
-// the hiclaw.io/worker-name label.
+// Uses the existing hiclaw.io/worker label set on all worker pods.
 func (p *Provisioner) getWorkerPodIP(ctx context.Context, workerName string) (string, error) {
 	if p.k8sClient == nil {
 		return "", fmt.Errorf("k8s client not available")
 	}
 
 	pods, err := p.k8sClient.CoreV1().Pods(p.namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("hiclaw.io/worker-name=%s", workerName),
+		LabelSelector: fmt.Sprintf("hiclaw.io/worker=%s", workerName),
 	})
 	if err != nil {
 		return "", fmt.Errorf("list pods: %w", err)
