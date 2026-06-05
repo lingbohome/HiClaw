@@ -17,6 +17,7 @@ source /opt/hiclaw/scripts/lib/container-api.sh
 
 LIFECYCLE_FILE="${HOME}/worker-lifecycle.json"
 REGISTRY_FILE="${HOME}/workers-registry.json"
+REGISTRY_MINIO_KEY="${HICLAW_STORAGE_PREFIX}/agents/manager/workers-registry.json"
 STATE_FILE="${HOME}/state.json"
 
 _ts() {
@@ -107,7 +108,23 @@ _ensure_worker_entry() {
 }
 
 # Get list of all worker names from workers-registry.json
+# Pull workers-registry.json from MinIO if the local copy is empty or missing.
+# In K8s/cloud mode, mc-mirror (supervisord process) is not running — the file
+# must be fetched on-demand. In embedded mode, this is a fast no-op.
+_ensure_registry() {
+    if [ -s "$REGISTRY_FILE" ]; then
+        return 0
+    fi
+    ensure_mc_credentials 2>/dev/null || true
+    if mc cat "$REGISTRY_MINIO_KEY" > "$REGISTRY_FILE" 2>/dev/null; then
+        _log "Pulled workers-registry.json from MinIO"
+    else
+        _log "WARNING: failed to pull $REGISTRY_MINIO_KEY — worker idle management disabled"
+    fi
+}
+
 _get_all_workers() {
+    _ensure_registry
     if [ ! -f "$REGISTRY_FILE" ]; then
         _log "WARNING: $REGISTRY_FILE not found"
         return
