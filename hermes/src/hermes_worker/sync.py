@@ -598,6 +598,27 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
         except Exception as exc:
             logger.debug("push_local: failed for %s: %s", rel, exc)
 
+    # ── Task file sync (Local->MinIO) ─────────────────────────────────
+    # Push changed task files to the collaborative shared space so the
+    # Console sees Worker progress without waiting for hiclaw-taskflow --sync.
+    # Runs as part of the push loop (every ~5s) but mirrors a separate path.
+    task_dir = local_dir / "shared" / "tasks"
+    if task_dir.exists():
+        try:
+            shared_remote = sync._get_shared_remote()
+            # Mirror only task files, keeping it fast
+            _mc(
+                "mirror",
+                str(task_dir) + "/",
+                shared_remote + "tasks/",
+                "--overwrite",
+                "--exclude", "spec.md",
+                "--exclude", "base/**",
+                check=False,  # non-fatal: don't break push over task sync failures
+            )
+        except Exception:
+            pass  # best-effort, failures are invisible to the Worker
+
     return pushed
 
 
