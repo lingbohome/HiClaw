@@ -174,7 +174,7 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
 (
     while true; do
         # Only push files modified AFTER the last pull (avoids pushing back freshly-pulled files)
-        CHANGED=$(find "${WORKSPACE}/" -type f -newer "${PULL_MARKER}" 2>/dev/null | head -1)
+        CHANGED=$(find "${WORKSPACE}/" -type f -newer "${PULL_MARKER}" -not -path "*/shared/*" 2>/dev/null | head -1)
         if [ -n "${CHANGED}" ]; then
             ensure_mc_credentials 2>/dev/null || true
             if ! mc mirror "${WORKSPACE}/" "${HICLAW_STORAGE_PREFIX}/agents/${WORKER_NAME}/" --overwrite \
@@ -185,7 +185,8 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
                 --exclude ".local/**" --exclude ".mc/**" --exclude "*.lock" \
                 --exclude ".last-pull" \
                 --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" \
-                --exclude "SOUL.md" --exclude "AGENTS.md" --exclude "HEARTBEAT.md" 2>&1; then
+                --exclude "SOUL.md" --exclude "AGENTS.md" --exclude "HEARTBEAT.md" \
+                --exclude "shared/**" 2>&1; then
                 log "WARNING: Local->Remote sync failed"
             fi
             # Per-file push for agent-self-modifiable files: only when locally
