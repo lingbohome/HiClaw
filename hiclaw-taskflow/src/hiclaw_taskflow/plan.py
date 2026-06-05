@@ -377,6 +377,8 @@ def parse_task_result(result_text: str) -> dict:
         if in_deliverables:
             item = line.strip().lstrip("-* ").strip()
             if item:
+                if item.startswith("[预览]"):
+                    continue  # preview entries are read from meta.json
                 result["deliverables"].append(item)
         elif in_notes:
             item = line.strip().lstrip("-* ").strip()

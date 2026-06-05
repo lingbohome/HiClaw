@@ -922,6 +922,8 @@ def parse_task_result(text: str) -> TaskResult:
         if line.startswith("- "):
             item = line[2:].strip()
             if section == "deliverables":
+                if item.startswith("[预览]"):
+                    continue  # preview entries are read from meta.json
                 deliverables.append(item)
             elif section == "notes":
                 notes.append(item)
