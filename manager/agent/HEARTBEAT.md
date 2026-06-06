@@ -58,10 +58,14 @@ Iterate over entries in `active_tasks` with `"type": "finite"`:
   - `failed` — could not start/recreate the container; **skip the follow-up message**, flag the anomaly for the admin report (Step 7), and suggest the admin intervene
 - **Send** the follow-up using the **message** tool with `channel=matrix`, `target=room:<room_id>` (the `room_id` or `project_room_id` you chose), and body @mention `@{worker}:${HICLAW_MATRIX_DOMAIN}`:
   ```
-  @{worker}:{domain} How is your current task {task-id} going? Are you blocked on anything?
+  @{worker}:{domain} Status check on task {task-id} — reply with @manager:{domain} to confirm you received this. What step are you on? Any blockers? Continue working autonomously until your plan.md is complete or you hit a true blocker — do NOT wait for my next check-in.
   ```
-- Determine if the Worker is making normal progress based on their reply
-- If the Worker has not responded (no response for more than one heartbeat cycle), flag the anomaly in the Room and notify the human admin (see Step 7)
+  **Critical:** The Worker MUST @mention you in their reply — Matrix group rooms filter by mention, so you cannot see messages that don't @mention you.
+- Read the Worker's reply. If they @mentioned you (`@manager:{domain}`), you received it — determine if they are making normal progress. If you did NOT receive an @mention within one heartbeat cycle, the Worker may have replied without mentioning you (they are NOT ignoring you, you just cannot see their reply). In that case, do NOT escalate to admin. Simply ping again. Only escalate to admin after **3 consecutive heartbeat cycles** with no @mention reply.
+- If the Worker reports no progress for 2+ consecutive cycles AND hasn't updated plan.md, send a stronger message:
+  ```
+  @{worker}:{domain} I've noticed no progress on {task-id} for the last {N} check-ins. If you're stuck, tell me what's blocking you (reply with @manager:{domain}). If not stuck, continue through your plan.md steps — you do NOT need my permission to proceed.
+  ```
 
 ---
 
