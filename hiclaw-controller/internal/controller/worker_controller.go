@@ -259,17 +259,17 @@ func (r *WorkerReconciler) reconcileLegacy(ctx context.Context, w *v1beta1.Worke
 // operation that must not trigger container recreation.
 func containerSpecHash(w *v1beta1.Worker) string {
 	type containerRelevant struct {
-		Model         string              `json:"model"`
-		Runtime       string              `json:"runtime"`
-		Image         string              `json:"image"`
-		Soul          string              `json:"soul"`
-		Agents        string              `json:"agents"`
-		Skills        []string            `json:"skills"`
-		McpServers    []string            `json:"mcpServers"`
-		State         string              `json:"state"`
-		ChannelPolicy *v1beta1.ChannelPolicySpec `json:"channelPolicy,omitempty"`
-		Package       string              `json:"package"`
-		ContainerManaged *bool            `json:"containerManaged,omitempty"`
+		Model            string                     `json:"model"`
+		Runtime          string                     `json:"runtime"`
+		Image            string                     `json:"image"`
+		Soul             string                     `json:"soul"`
+		Agents           string                     `json:"agents"`
+		Skills           []string                   `json:"skills"`
+		McpServers       []v1beta1.MCPServer        `json:"mcpServers"`
+		State            *string                    `json:"state,omitempty"`
+		ChannelPolicy    *v1beta1.ChannelPolicySpec `json:"channelPolicy,omitempty"`
+		Package          string                     `json:"package"`
+		ContainerManaged *bool                      `json:"containerManaged,omitempty"`
 	}
 	s := w.Spec
 	input := containerRelevant{
