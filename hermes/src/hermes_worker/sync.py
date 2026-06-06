@@ -240,7 +240,8 @@ class FileSync:
         shared_remote = self._get_shared_remote()
         shared_local = str(self.local_dir / "shared") + "/"
         try:
-            _mc("mirror", shared_remote, shared_local, "--overwrite", check=True)
+            _mc("mirror", shared_remote, shared_local, "--overwrite",
+            "--exclude", "*/node_modules/**", check=True)
             logger.info(
                 "mirror_all: shared/ mirror completed from %s", shared_remote
             )

@@ -54,7 +54,8 @@ log "Pulling Worker config from centralized storage..."
 ensure_mc_credentials 2>/dev/null || true
 mc mirror "${HICLAW_STORAGE_PREFIX}/agents/${WORKER_NAME}/" "${WORKSPACE}/" --overwrite \
     --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" --exclude "credentials/**"
-mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --overwrite 2>/dev/null || true
+mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --overwrite \
+    --exclude "*/node_modules/**" 2>/dev/null || true
 
 # Mark pull completion — the local→remote sync loop uses this marker to avoid
 # pushing back files that were just pulled (their mtime is fresh from the pull).

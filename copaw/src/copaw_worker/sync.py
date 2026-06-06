@@ -444,7 +444,8 @@ class FileSync:
         self.shared_dir.mkdir(parents=True, exist_ok=True)
         logger.info("mirror_all: shared mirror remote=%s local=%s", shared_remote, shared_local)
         try:
-            _mc("mirror", shared_remote, shared_local, "--overwrite", check=True)
+            _mc("mirror", shared_remote, shared_local, "--overwrite",
+            "--exclude", "*/node_modules/**", check=True)
             logger.info("mirror_all: shared/ mirror completed from %s", shared_remote)
         except subprocess.CalledProcessError as exc:
             logger.warning(
