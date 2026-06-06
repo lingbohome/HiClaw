@@ -221,6 +221,7 @@ log "Local->Remote change-triggered sync started (PID: $!)"
         ensure_mc_credentials 2>/dev/null || true
         mc mirror "${HICLAW_ROOT}/shared/tasks/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/" --overwrite \
             --exclude "spec.md" --exclude "base/**" \
+            --exclude "meta.json" --exclude "result.md" \
             --exclude "*/node_modules/**" --exclude "*/.git/**" \
             --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     done
