@@ -212,20 +212,18 @@ log "Local->Remote change-triggered sync started (PID: $!)"
 # spec.md and base/ are excluded because they are Manager-managed (read-only for
 # the Worker).  Large dependency trees are excluded to keep the mirror fast.
 (
-    while true; do
-        sleep 15
-        # Push unconditionally — mc mirror only uploads changed files,
-        # so this is cheap when nothing changed.  No PULL_MARKER gate
-        # because the 5-min fallback pull no longer uses --overwrite
-        # (no feedback-loop risk) and a gate could skip files the
-        # Worker edited before the last PULL_MARKER touch.
-        ensure_mc_credentials 2>/dev/null || true
-        mc mirror "${HICLAW_ROOT}/shared/tasks/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/" --overwrite \
-            --exclude "spec.md" --exclude "base/**" \
-            --exclude "meta.json" --exclude "result.md" \
-            --exclude "*/node_modules/**" --exclude "*/.git/**" \
-            --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
-    done
+        while true; do
+            sleep 15
+            # Only push tasks this Worker is actively editing (modified in the
+            # last 3 minutes).  This prevents idle Workers from pushing stale
+            # copies of another Worker's active task files back to MinIO.
+            ensure_mc_credentials 2>/dev/null || true
+            ACTIVE_DIRS=$(find "${HICLAW_ROOT}/shared/tasks/" -maxdepth 1 -mindepth 1 -type d -mmin -3 2>/dev/null)
+            for task_dir in $ACTIVE_DIRS; do
+                [ -d "$task_dir" ] || continue
+                mc mirror "$task_dir/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/$(basename "$task_dir")/" --overwrite                     --exclude "spec.md" --exclude "base/**"                     --exclude "meta.json" --exclude "result.md"                     --exclude "*/node_modules/**" --exclude "*/.git/**"                     --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+            done
+        done
 ) &
 log "Task file sync started (PID: $!, interval: 15s)"
 

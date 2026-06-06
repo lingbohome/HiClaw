@@ -607,21 +607,30 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
     if task_dir.exists():
         try:
             shared_remote = sync._get_shared_remote()
-            # Mirror only task files, keeping it fast
-            _mc(
-                "mirror",
-                str(task_dir) + "/",
-                shared_remote + "tasks/",
-                "--overwrite",
-                "--exclude", "spec.md",
-                "--exclude", "base/**",
-                "--exclude", "meta.json",
-                "--exclude", "result.md",
-                "--exclude", "node_modules/**",
-                check=False,  # non-fatal: don't break push over task sync failures
-            )
+            import time as _time
+            cutoff = _time.time() - 180  # 3 minutes
+            for entry in task_dir.iterdir():
+                if not entry.is_dir():
+                    continue
+                try:
+                    if entry.stat().st_mtime < cutoff:
+                        continue  # skip stale copies of other Workers' tasks
+                except OSError:
+                    continue
+                _mc(
+                    "mirror",
+                    str(entry) + "/",
+                    shared_remote + "tasks/" + entry.name + "/",
+                    "--overwrite",
+                    "--exclude", "spec.md",
+                    "--exclude", "base/**",
+                    "--exclude", "meta.json",
+                    "--exclude", "result.md",
+                    "--exclude", "node_modules/**",
+                    check=False,
+                )
         except Exception:
-            pass  # best-effort, failures are invisible to the Worker
+            pass  # best-effort
 
     return pushed
 
