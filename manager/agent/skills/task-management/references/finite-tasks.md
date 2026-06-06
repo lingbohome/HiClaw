@@ -126,9 +126,17 @@ When you receive a DM containing `[NOTICE] Task [...] has been ACCEPTED`:
      --action complete --task-id {task-id}
    ```
 
-5. Log to `memory/YYYY-MM-DD.md`.
+5. Notify the Worker that the task was accepted, so they can clean up.
+   Send a message to the Worker's room @{worker}:{domain}:
+   ```
+   @{worker}:{domain} Task {task-id} has been accepted by the reviewer.
+   If you have a dev server or preview service still running, you can
+   stop it now. Great work!
+   ```
 
-6. Notify admin: `[Task Completed] {task-id}: {title} — assigned to {worker}. Human review accepted, task finalized.`
+6. Log to `memory/YYYY-MM-DD.md`.
+
+7. Notify admin: `[Task Completed] {task-id}: {title} — assigned to {worker}. Human review accepted, task finalized.`
 
 ## On human reject
 
