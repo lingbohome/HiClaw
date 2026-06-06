@@ -248,7 +248,8 @@ log "Task file sync started (PID: $!, interval: 15s)"
         # (triggered by Manager @mention) and continuous task sync (15s loop)
         # handle intentional sync. This fallback only creates new directories
         # and files that don't exist locally (e.g. newly assigned tasks).
-        mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --newer-than "5m" 2>/dev/null || true
+        mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --newer-than "5m" \
+            --exclude "*/node_modules/**" 2>/dev/null || true
         # Refresh PULL_MARKER so the change-triggered push loop doesn't
         # re-trigger forever on freshly-pulled openclaw.json/skills mtimes,
         # and so the per-file -nt guard correctly classifies post-pull edits.
