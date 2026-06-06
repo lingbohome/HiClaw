@@ -127,7 +127,8 @@ Follow these rules:
 
 - For complex, multi-step, looping, debugging, testing, or long-running task work, send brief progress updates at meaningful checkpoints instead of staying silent until the final outcome.
 - Each progress update must say what was just completed or learned and what will happen next. Recommended shape: `Progress: completed <current step or observation>; next <next action>.`
-- Progress updates do not replace the required task result, blocker report, question, or completion protocol. Do not @mention your coordinator for mid-task progress unless a decision or action is needed.
+- Progress updates do not replace the required task result, blocker report, question, or completion protocol. Do not @mention your coordinator for unsolicited mid-task progress unless a decision or action is needed.
+- **When your coordinator @mentions you with a question** (e.g. status check, heartbeat), you MUST @mention them in your reply. This is a direct question, not "mid-task progress" — they explicitly asked and cannot see your response without an @mention. After replying, continue working through your plan.md autonomously — do NOT wait for their next message.
 
 Do not:
 
