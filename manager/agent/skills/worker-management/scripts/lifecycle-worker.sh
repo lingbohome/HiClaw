@@ -107,19 +107,28 @@ _ensure_worker_entry() {
     fi
 }
 
-# Get list of all worker names from workers-registry.json
-# Pull workers-registry.json from MinIO if the local copy is empty or missing.
-# In K8s/cloud mode, mc-mirror (supervisord process) is not running — the file
-# must be fetched on-demand. In embedded mode, this is a fast no-op.
+# Pull worker list from Controller REST API if the local copy is empty/missing.
+# In K8s/cloud mode mc-mirror is not running and the Manager may lack MinIO
+# permissions for agents/manager/.  The Controller API avoids both issues.
 _ensure_registry() {
     if [ -s "$REGISTRY_FILE" ]; then
         return 0
     fi
+    # Try mc cat first (embedded mode: local MinIO, full access)
     ensure_mc_credentials 2>/dev/null || true
     if mc cat "$REGISTRY_MINIO_KEY" > "$REGISTRY_FILE" 2>/dev/null; then
         _log "Pulled workers-registry.json from MinIO"
+        return 0
+    fi
+    # Fallback: Controller REST API (K8s/cloud mode)
+    if hiclaw get workers -o json > /tmp/hiclaw-workers.json 2>/dev/null; then
+        # Transform array → registry format: {"workers": {"name": {...}, ...}}
+        jq 'reduce .[] as $w ({}; .[$w.name] = $w) | {version: 1, updated_at: now|todate, workers: .}' \
+            /tmp/hiclaw-workers.json > "$REGISTRY_FILE" 2>/dev/null
+        rm -f /tmp/hiclaw-workers.json
+        _log "Pulled workers-registry.json from Controller API"
     else
-        _log "WARNING: failed to pull $REGISTRY_MINIO_KEY — worker idle management disabled"
+        _log "WARNING: failed to pull worker registry — worker idle management disabled"
     fi
 }
 
