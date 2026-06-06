@@ -246,7 +246,12 @@ log "Task file sync started (PID: $!, interval: 15s)"
         mc cp "${HICLAW_STORAGE_PREFIX}/agents/${WORKER_NAME}/config/mcporter.json" "${WORKSPACE}/config/mcporter.json" 2>/dev/null || true
         mc mirror "${HICLAW_STORAGE_PREFIX}/agents/${WORKER_NAME}/skills/" "${WORKSPACE}/skills/" --overwrite 2>/dev/null || true
         find "${WORKSPACE}/skills" -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
-        mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --overwrite --newer-than "5m" 2>/dev/null || true
+        # Pull shared/ WITHOUT --overwrite: never replace Worker's local task
+        # files with potentially stale MinIO copies. The file-sync skill
+        # (triggered by Manager @mention) and continuous task sync (15s loop)
+        # handle intentional sync. This fallback only creates new directories
+        # and files that don't exist locally (e.g. newly assigned tasks).
+        mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --newer-than "5m" 2>/dev/null || true
         # Refresh PULL_MARKER so the change-triggered push loop doesn't
         # re-trigger forever on freshly-pulled openclaw.json/skills mtimes,
         # and so the per-file -nt guard correctly classifies post-pull edits.
