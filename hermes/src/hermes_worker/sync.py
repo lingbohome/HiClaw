@@ -416,6 +416,7 @@ class FileSync:
             result = _mc(
                 "mirror",
                 shared_remote,
+            "--exclude", "*/node_modules/**",
                 str(shared_local) + "/",
                 check=False,
             )
