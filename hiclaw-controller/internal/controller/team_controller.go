@@ -914,6 +914,9 @@ func hashMemberSourceSpec(t *v1beta1.Team, role MemberRole, name string) string 
 		if !found {
 			return ""
 		}
+		// Exclude Expose from hash — port exposure is gateway-only, must not
+		// trigger container recreation when it changes.
+		ws.Expose = nil
 		payload = workerInput{
 			Worker:       ws,
 			TeamPolicy:   t.Spec.ChannelPolicy,

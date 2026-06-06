@@ -2,6 +2,9 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	v1beta1 "github.com/hiclaw/hiclaw-controller/api/v1beta1"
@@ -142,6 +145,15 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 	_ = ReconcileMemberExpose(ctx, deps, mctx, state)
 	applyMemberStateToWorker(w, state)
 
+	// Persist container-spec hash annotation. Status subresource updates
+	// (done by controller-runtime after this return) don't include metadata
+	// changes, so we must explicitly update the object.
+	if w.Annotations != nil && w.Annotations["hiclaw.io/container-spec-hash"] != "" {
+		if err := r.Update(ctx, w); err != nil {
+			log.FromContext(ctx).Error(err, "failed to persist container-spec-hash annotation (non-fatal)")
+		}
+	}
+
 	r.reconcileLegacy(ctx, w, state)
 
 	logger := log.FromContext(ctx)
@@ -241,9 +253,55 @@ func (r *WorkerReconciler) reconcileLegacy(ctx context.Context, w *v1beta1.Worke
 // and member role). Controller-forced keys deliberately come last so
 // anything the user writes that collides (e.g. `hiclaw.io/controller`)
 // is silently overridden rather than rejected.
+// containerSpecHash computes a SHA-256 hash of WorkerSpec fields that affect
+// the container (model, runtime, image, soul, agents, skills, channelPolicy,
+// state). Expose is deliberately excluded — port exposure is a gateway-level
+// operation that must not trigger container recreation.
+func containerSpecHash(w *v1beta1.Worker) string {
+	type containerRelevant struct {
+		Model         string              `json:"model"`
+		Runtime       string              `json:"runtime"`
+		Image         string              `json:"image"`
+		Soul          string              `json:"soul"`
+		Agents        string              `json:"agents"`
+		Skills        []string            `json:"skills"`
+		McpServers    []string            `json:"mcpServers"`
+		State         string              `json:"state"`
+		ChannelPolicy *v1beta1.ChannelPolicySpec `json:"channelPolicy,omitempty"`
+		Package       string              `json:"package"`
+		ContainerManaged *bool            `json:"containerManaged,omitempty"`
+	}
+	s := w.Spec
+	input := containerRelevant{
+		Model:         s.Model,
+		Runtime:       s.Runtime,
+		Image:         s.Image,
+		Soul:          s.Soul,
+		Agents:        s.Agents,
+		Skills:        s.Skills,
+		McpServers:    s.McpServers,
+		State:         s.State,
+		ChannelPolicy: s.ChannelPolicy,
+		Package:       s.Package,
+		ContainerManaged: s.ContainerManaged,
+	}
+	b, _ := json.Marshal(input)
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
 func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext {
 	role := roleForAnnotations(w.Annotations["hiclaw.io/role"], w.Annotations["hiclaw.io/team-leader"])
 	runtimeName := w.Spec.EffectiveWorkerName(w.Name)
+
+	// Use container-spec hash comparison instead of K8s generation comparison.
+	// K8s generation increments on ANY spec change (including expose), which
+	// would trigger unnecessary pod recreation. We only care about container-
+	// affecting changes.
+	currentHash := containerSpecHash(w)
+	storedHash := w.Annotations["hiclaw.io/container-spec-hash"]
+	specChanged := w.Status.ObservedGeneration > 0 && currentHash != "" && storedHash != "" && currentHash != storedHash
+
 	return MemberContext{
 		Name:               w.Name,
 		RuntimeName:        runtimeName,
@@ -260,16 +318,11 @@ func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext 
 				"hiclaw.io/role":        role.String(),
 			},
 		),
-		// SpecChanged is gated on ObservedGeneration > 0 so a brand-new
-		// Worker (Generation=1, ObservedGeneration=0) reports
-		// SpecChanged=false. Initial creation then goes through the
-		// StatusNotFound branch in ensureMemberContainerPresent
-		// unambiguously. Without the gate, a second reconcile queued by
-		// the finalizer write can read a stale informer cache
-		// (ObservedGeneration still 0) after the just-created container
-		// is already Running, fall into the spec-change branch, and Delete
-		// the container via force=true (SIGKILL, exit 137).
-		SpecChanged:          w.Status.ObservedGeneration > 0 && w.Generation != w.Status.ObservedGeneration,
+		// SpecChanged uses container-spec hash comparison, NOT K8s generation.
+		// This prevents pod recreation when only expose (gateway config) changes.
+		// Gated on ObservedGeneration > 0 so initial creation goes through
+		// the StatusNotFound branch, not the spec-change branch.
+		SpecChanged:          specChanged,
 		IsUpdate:             w.Status.Phase != "" && w.Status.Phase != "Pending" && w.Status.Phase != "Failed",
 		TeamName:             w.Annotations["hiclaw.io/team"],
 		TeamLeaderName:       w.Annotations["hiclaw.io/team-leader"],
@@ -293,6 +346,15 @@ func applyMemberStateToWorker(w *v1beta1.Worker, state *MemberState) {
 	}
 	if state.RoomID != "" {
 		w.Status.RoomID = state.RoomID
+	}
+	// Persist container-spec hash after successful container reconcile.
+	// Used by workerMemberContext to detect spec changes that actually
+	// affect the container (excludes expose/gateway-only changes).
+	if state.ContainerState != "" && state.ContainerState != "failed" {
+		if w.Annotations == nil {
+			w.Annotations = make(map[string]string)
+		}
+		w.Annotations["hiclaw.io/container-spec-hash"] = containerSpecHash(w)
 	}
 	if state.ContainerState != "" {
 		w.Status.ContainerState = state.ContainerState
