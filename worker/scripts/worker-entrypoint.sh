@@ -218,10 +218,13 @@ log "Local->Remote change-triggered sync started (PID: $!)"
             # last 3 minutes).  This prevents idle Workers from pushing stale
             # copies of another Worker's active task files back to MinIO.
             ensure_mc_credentials 2>/dev/null || true
-            ACTIVE_DIRS=$(find "${HICLAW_ROOT}/shared/tasks/" -maxdepth 1 -mindepth 1 -type d -mmin -3 2>/dev/null)
-            for task_dir in $ACTIVE_DIRS; do
+            for task_dir in "${HICLAW_ROOT}/shared/tasks/"/*/; do
                 [ -d "$task_dir" ] || continue
-                mc mirror "$task_dir/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/$(basename "$task_dir")/" --overwrite                     --exclude "spec.md" --exclude "base/**"                     --exclude "meta.json" --exclude "result.md"                     --exclude "*/node_modules/**" --exclude "*/.git/**"                     --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+                meta="$task_dir/meta.json"
+                [ -f "$meta" ] || continue
+                assigned=$(jq -r '.assigned_to // .assigned_worker // empty' "$meta" 2>/dev/null)
+                [ "$assigned" = "${HICLAW_WORKER_NAME}" ] || continue
+                mc mirror "$task_dir" "${HICLAW_STORAGE_PREFIX}/shared/tasks/$(basename "$task_dir")/" --overwrite                     --exclude "spec.md" --exclude "base/**"                     --exclude "meta.json" --exclude "result.md"                     --exclude "*/node_modules/**" --exclude "*/.git/**"                     --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
             done
         done
 ) &

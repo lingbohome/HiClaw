@@ -836,16 +836,22 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
     if task_dir.exists():
         try:
             shared_remote = sync._get_shared_remote()
-            import time as _time
-            cutoff = _time.time() - 180  # 3 minutes
+            import json as _json
+            import os as _os
+            worker_name = _os.environ.get('HICLAW_WORKER_NAME', '')
             for entry in task_dir.iterdir():
                 if not entry.is_dir():
                     continue
+                # Only push tasks assigned to this Worker
+                meta_path = entry / 'meta.json'
                 try:
-                    if entry.stat().st_mtime < cutoff:
-                        continue  # skip stale copies of other Workers' tasks
-                except OSError:
-                    continue
+                    if worker_name:
+                        meta = _json.loads(meta_path.read_text())
+                        assigned = meta.get('assigned_to') or meta.get('assigned_worker') or ''
+                        if assigned != worker_name:
+                            continue
+                except Exception:
+                    continue  # can't read meta, skip this task
                 _mc(
                     "mirror",
                     str(entry) + "/",
