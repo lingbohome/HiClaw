@@ -416,7 +416,6 @@ class FileSync:
                 "mirror",
                 shared_remote,
                 str(shared_local) + "/",
-                "--overwrite",
                 check=False,
             )
             if result.returncode == 0:
