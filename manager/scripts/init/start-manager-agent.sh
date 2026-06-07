@@ -1127,16 +1127,21 @@ fi
 # Fallback: if HICLAW_GITHUB_TOKEN is set but the host has no git credential
 # helper, configure git to use the token for GitHub HTTPS authentication so
 # git-delegation (clone/push) works without host-side setup.
+# Uses url.insteadOf (available since Git 1.x) rather than http.extraHeader
+# (Git 2.9+) for maximum compatibility. Transparently rewrites
+# https://github.com/ → https://TOKEN@github.com/ on every git request.
 if [ -n "${HICLAW_GITHUB_TOKEN}" ]; then
-    if ! git config --global --get http.https://github.com/.extraheader > /dev/null 2>&1; then
+    if ! git config --global --get url."https://${HICLAW_GITHUB_TOKEN}@github.com/".insteadOf > /dev/null 2>&1; then
         if ! git config --get credential.helper > /dev/null 2>&1; then
             log "No git credential helper found, configuring HICLAW_GITHUB_TOKEN as GitHub auth fallback"
-            git config --global http.https://github.com/.extraheader "Authorization: Bearer ${HICLAW_GITHUB_TOKEN}"
+            git config --global url."https://${HICLAW_GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+            # Erase any stale extraheader from a previous version of this fallback
+            git config --global --unset 'http.https://github.com/.extraheader' 2>/dev/null || true
         else
             log "Git credential helper detected, using host git config for auth"
         fi
     else
-        log "Git extraheader already configured, skipping fallback"
+        log "Git insteadOf already configured, skipping fallback"
     fi
 fi
 
