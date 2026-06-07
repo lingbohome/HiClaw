@@ -263,30 +263,30 @@ func (r *WorkerReconciler) reconcileLegacy(ctx context.Context, w *v1beta1.Worke
 // gateway-level operation that must not trigger container recreation.
 func containerSpecHash(w *v1beta1.Worker) string {
 	type containerRelevant struct {
-		Model            string                     ` + 'json:"model"` + '
-		Runtime          string                     ` + 'json:"runtime"` + '
-		Image            string                     ` + 'json:"image"` + '
-		Soul             string                     ` + 'json:"soul"` + '
-		Agents           string                     ` + 'json:"agents"` + '
-		Skills           []string                   ` + 'json:"skills"` + '
-		McpServers       []v1beta1.MCPServer        ` + 'json:"mcpServers"` + '
-		State            *string                    ` + 'json:"state,omitempty"` + '
-		ChannelPolicy    *v1beta1.ChannelPolicySpec ` + 'json:"channelPolicy,omitempty"` + '
-		Package          string                     ` + 'json:"package"` + '
-		ContainerManaged *bool                      ` + 'json:"containerManaged,omitempty"` + '
+		Model            string
+		Runtime          string
+		Image            string
+		Soul             string
+		Agents           string
+		Skills           []string
+		McpServers       []v1beta1.MCPServer
+		State            *string
+		ChannelPolicy    *v1beta1.ChannelPolicySpec
+		Package          string
+		ContainerManaged *bool
 	}
 	s := w.Spec
 	input := containerRelevant{
-		Model:         s.Model,
-		Runtime:       s.Runtime,
-		Image:         s.Image,
-		Soul:          s.Soul,
-		Agents:        s.Agents,
-		Skills:        s.Skills,
-		McpServers:    s.McpServers,
-		State:         s.State,
-		ChannelPolicy: s.ChannelPolicy,
-		Package:       s.Package,
+		Model:            s.Model,
+		Runtime:          s.Runtime,
+		Image:            s.Image,
+		Soul:             s.Soul,
+		Agents:           s.Agents,
+		Skills:           s.Skills,
+		McpServers:       s.McpServers,
+		State:            s.State,
+		ChannelPolicy:    s.ChannelPolicy,
+		Package:          s.Package,
 		ContainerManaged: s.ContainerManaged,
 	}
 	b, _ := json.Marshal(input)
@@ -294,14 +294,7 @@ func containerSpecHash(w *v1beta1.Worker) string {
 	return hex.EncodeToString(h[:])
 }
 
-// workerMemberContext translates a Worker CR into a MemberContext for the
-// shared member reconcile helpers. The returned PodLabels are built by
-// layering four sources low-to-high: ConfigMap-based pod template (added
-// downstream by ApplyPodTemplate), the CR's metadata.labels, the CR's
-// spec.labels, and the controller-forced system labels (controller name
-// and member role). Controller-forced keys deliberately come last so
-// anything the user writes that collides (e.g. `hiclaw.io/controller`)
-// is silently overridden rather than rejected.
+
 func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext {
 	role := roleForAnnotations(w.Annotations["hiclaw.io/role"], w.Annotations["hiclaw.io/team-leader"])
 	runtimeName := w.Spec.EffectiveWorkerName(w.Name)
