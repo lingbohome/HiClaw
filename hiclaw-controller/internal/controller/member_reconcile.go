@@ -415,17 +415,20 @@ func extraHostsForBackend(wb backend.WorkerBackend) []string {
 // Non-fatal: logs and returns current state unchanged on failure. The returned
 // slice overwrites state.ExposedPorts on success.
 func ReconcileMemberExpose(ctx context.Context, d MemberDeps, m MemberContext, state *MemberState) error {
+	logger := log.FromContext(ctx)
 	if len(m.Spec.Expose) == 0 && len(m.CurrentExposedPorts) == 0 {
 		state.ExposedPorts = nil
 		return nil
 	}
 	exposedPorts, err := d.Provisioner.ReconcileExpose(ctx, m.Name, m.Spec.Expose, m.CurrentExposedPorts)
 	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to reconcile exposed ports (non-fatal)", "name", m.Name)
-		// Fall back to spec-derived ports so the status isn't left empty.
-		// Non-fatal errors (e.g. Higress 409 Conflict when resources
-		// already exist) should not block the status update.
+		logger.Info("DEBUG expose: reconcile failed, falling back to spec-derived ports",
+			"name", m.Name, "error", err.Error(),
+			"specPorts", len(m.Spec.Expose), "currentPorts", len(m.CurrentExposedPorts))
 		exposedPorts = m.specDerivedExposedPorts()
+	} else {
+		logger.Info("DEBUG expose: reconcile succeeded",
+			"name", m.Name, "exposedPorts", len(exposedPorts))
 	}
 	state.ExposedPorts = exposedPorts
 	return nil

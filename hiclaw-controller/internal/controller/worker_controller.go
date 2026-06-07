@@ -140,6 +140,7 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 	}
 	// Expose runs before container - gateway operation, not container-dependent.
 	// Running it first ensures exposedPorts are always written to status.
+	log.FromContext(ctx).Info("DEBUG: about to reconcile expose", "name", w.Name, "specExpose", len(w.Spec.Expose), "statusExposed", len(w.Status.ExposedPorts))
 	_ = ReconcileMemberExpose(ctx, deps, mctx, state)
 	applyMemberStateToWorker(w, state)
 
