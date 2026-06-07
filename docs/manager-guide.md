@@ -26,7 +26,7 @@ The Manager is configured via environment variables set during installation. The
 | `HICLAW_PORT_GATEWAY` | No | `18080` | Host port for Higress gateway |
 | `HICLAW_PORT_CONSOLE` | No | `18001` | Host port for Higress console |
 | `HICLAW_PORT_ELEMENT_WEB` | No | `18088` | Host port for Element Web direct access |
-| `HICLAW_GITHUB_TOKEN` | No | - | GitHub PAT for MCP Server |
+| `HICLAW_GITHUB_TOKEN` | No | - | GitHub PAT for MCP Server + git-delegation (clone/push) auth |
 | `HICLAW_WORKER_IMAGE` | No | `hiclaw/worker-agent:latest` | Worker Docker image for direct creation |
 | `HICLAW_WORKSPACE_DIR` | No | `~/hiclaw-manager` | Host directory for Manager workspace (bind-mounted to `/root/manager-workspace`) |
 | `HICLAW_DATA_DIR` | No | `hiclaw-data` | Docker volume name for persistent data |

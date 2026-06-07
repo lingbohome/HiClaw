@@ -26,7 +26,7 @@ Manager 通过安装时设置的环境变量进行配置。安装脚本会生成
 | `HICLAW_PORT_GATEWAY` | 否 | `18080` | Higress 网关的宿主机端口 |
 | `HICLAW_PORT_CONSOLE` | 否 | `18001` | Higress 控制台的宿主机端口 |
 | `HICLAW_PORT_ELEMENT_WEB` | 否 | `18088` | Element Web 直接访问的宿主机端口 |
-| `HICLAW_GITHUB_TOKEN` | 否 | - | GitHub PAT，用于 MCP Server |
+| `HICLAW_GITHUB_TOKEN` | 否 | - | GitHub PAT，用于 MCP Server + git-delegation (clone/push) 认证 |
 | `HICLAW_WORKER_IMAGE` | 否 | `hiclaw/worker-agent:latest` | 直接创建 Worker 时使用的 Docker 镜像 |
 | `HICLAW_WORKSPACE_DIR` | 否 | `~/hiclaw-manager` | Manager 工作空间的宿主机目录（bind mount 到 `/root/manager-workspace`） |
 | `HICLAW_DATA_DIR` | 否 | `hiclaw-data` | 持久化数据的 Docker 卷名称 |
