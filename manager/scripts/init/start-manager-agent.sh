@@ -1124,6 +1124,22 @@ if [ -d "/host-share" ]; then
     [ -f "/host-share/.gitconfig" ] && ln -sf "/host-share/.gitconfig" "${HOME}/.gitconfig"
 fi
 
+# Fallback: if HICLAW_GITHUB_TOKEN is set but the host has no git credential
+# helper, configure git to use the token for GitHub HTTPS authentication so
+# git-delegation (clone/push) works without host-side setup.
+if [ -n "${HICLAW_GITHUB_TOKEN}" ]; then
+    if ! git config --global --get http.https://github.com/.extraheader > /dev/null 2>&1; then
+        if ! git config --get credential.helper > /dev/null 2>&1; then
+            log "No git credential helper found, configuring HICLAW_GITHUB_TOKEN as GitHub auth fallback"
+            git config --global http.https://github.com/.extraheader "Authorization: Bearer ${HICLAW_GITHUB_TOKEN}"
+        else
+            log "Git credential helper detected, using host git config for auth"
+        fi
+    else
+        log "Git extraheader already configured, skipping fallback"
+    fi
+fi
+
 log "HOME=${HOME} (manager-workspace, host-mounted)"
 
 # ── Render agent doc templates ────────────────────────────────────────────

@@ -12,6 +12,7 @@ This skill enables the Manager to execute **any git operation** on behalf of Wor
 The Manager has access to:
 - Host's `.gitconfig` via `/host-share/.gitconfig` (symlinked to `/root/.gitconfig`)
 - Git credentials (SSH keys, credential helpers) configured on the host
+- **Fallback**: If `HICLAW_GITHUB_TOKEN` is set and no credential helper is detected, the Manager startup script configures `http.https://github.com/.extraheader` with `Authorization: Bearer <token>`. This ensures git-delegation works even on clean hosts without pre-configured git auth.
 
 This allows git operations to use the correct author name, email, and authentication.
 
@@ -145,7 +146,7 @@ When git operations fail:
 
 Common issues:
 - Merge conflicts → Ask Worker to resolve locally
-- Authentication failure → Check `/host-share/.gitconfig` and credential helper
+- Authentication failure → Check `/host-share/.gitconfig` and credential helper. If the host has no git auth configured, the startup script should have configured `http.https://github.com/.extraheader` from `HICLAW_GITHUB_TOKEN` — verify with `git config --get http.https://github.com/.extraheader`. As a last resort, configure manually: `git config --global http.https://github.com/.extraheader "Authorization: Bearer <token>"`
 - Branch divergence → Worker may need to pull/rebase first
 
 ---
