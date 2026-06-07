@@ -411,7 +411,8 @@ func (d *Deployer) PushOnDemandSkills(ctx context.Context, workerName string, sk
 	// The agent template dir in the controller image has all skill sources.
 	skillsRoot := "/opt/hiclaw/agent"
 	for _, skillName := range skills {
-		// Search both worker-agent and copaw-worker-agent for the skill
+		found := false
+		// Search runtime-specific builtin skill dirs first (skills/<name>/)
 		for _, agentDir := range []string{"worker-agent", "copaw-worker-agent", "hermes-worker-agent"} {
 			src := filepath.Join(skillsRoot, agentDir, "skills", skillName) + "/"
 			if _, err := os.Stat(src); os.IsNotExist(err) {
@@ -421,7 +422,21 @@ func (d *Deployer) PushOnDemandSkills(ctx context.Context, workerName string, sk
 			if err := d.oss.Mirror(ctx, src, dst, oss.MirrorOptions{Overwrite: true}); err != nil {
 				logger.Info("on-demand skill push failed (non-fatal)", "worker", workerName, "skill", skillName, "error", err)
 			}
+			found = true
 			break
+		}
+		if found {
+			continue
+		}
+		// Fallback: Manager-managed on-demand skills (worker-skills/<name>/ —
+		// flat layout, no intermediate "skills/" directory).
+		src := filepath.Join(skillsRoot, "worker-skills", skillName) + "/"
+		if _, err := os.Stat(src); os.IsNotExist(err) {
+			continue
+		}
+		dst := agentPrefix + "/skills/" + skillName + "/"
+		if err := d.oss.Mirror(ctx, src, dst, oss.MirrorOptions{Overwrite: true}); err != nil {
+			logger.Info("on-demand skill push failed (non-fatal)", "worker", workerName, "skill", skillName, "error", err)
 		}
 	}
 	return nil
