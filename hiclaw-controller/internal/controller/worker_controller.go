@@ -82,7 +82,7 @@ func (r *WorkerReconciler) Reconcile(ctx context.Context, req reconcile.Request)
 		worker.Status.Phase = computeWorkerPhase(&worker, reterr)
 		if reterr == nil {
 			worker.Status.ObservedGeneration = worker.Generation
-			// Keep Message — contains container spec hash from applyMemberStateToWorker
+			worker.Status.Message = ""
 		} else {
 			worker.Status.Message = reterr.Error()
 		}
@@ -251,43 +251,6 @@ func (r *WorkerReconciler) reconcileLegacy(ctx context.Context, w *v1beta1.Worke
 // and member role). Controller-forced keys deliberately come last so
 // anything the user writes that collides (e.g. `hiclaw.io/controller`)
 // is silently overridden rather than rejected.
-// containerSpecHash computes a SHA-256 hash of WorkerSpec fields that affect
-// the container (model, runtime, image, soul, agents, skills, channelPolicy,
-// state). Expose is deliberately excluded — port exposure is a gateway-level
-// operation that must not trigger container recreation.
-func containerSpecHash(w *v1beta1.Worker) string {
-	type containerRelevant struct {
-		Model            string                     `json:"model"`
-		Runtime          string                     `json:"runtime"`
-		Image            string                     `json:"image"`
-		Soul             string                     `json:"soul"`
-		Agents           string                     `json:"agents"`
-		Skills           []string                   `json:"skills"`
-		McpServers       []v1beta1.MCPServer        `json:"mcpServers"`
-		State            *string                    `json:"state,omitempty"`
-		ChannelPolicy    *v1beta1.ChannelPolicySpec `json:"channelPolicy,omitempty"`
-		Package          string                     `json:"package"`
-		ContainerManaged *bool                      `json:"containerManaged,omitempty"`
-	}
-	s := w.Spec
-	input := containerRelevant{
-		Model:         s.Model,
-		Runtime:       s.Runtime,
-		Image:         s.Image,
-		Soul:          s.Soul,
-		Agents:        s.Agents,
-		Skills:        s.Skills,
-		McpServers:    s.McpServers,
-		State:         s.State,
-		ChannelPolicy: s.ChannelPolicy,
-		Package:       s.Package,
-		ContainerManaged: s.ContainerManaged,
-	}
-	b, _ := json.Marshal(input)
-	h := sha256.Sum256(b)
-	return hex.EncodeToString(h[:])
-}
-
 func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext {
 	role := roleForAnnotations(w.Annotations["hiclaw.io/role"], w.Annotations["hiclaw.io/team-leader"])
 	runtimeName := w.Spec.EffectiveWorkerName(w.Name)
@@ -296,11 +259,7 @@ func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext 
 	// K8s generation increments on ANY spec change (including expose), which
 	// would trigger unnecessary pod recreation. We only care about container-
 	// affecting changes.
-	currentHash := containerSpecHash(w)
-	// Store hash in status.Message (part of status subresource, same write as exposedPorts)
-	// rather than annotation (metadata — causes write conflict with status update).
-	storedHash := w.Status.Message
-	specChanged := w.Status.ObservedGeneration > 0 && currentHash != "" && storedHash != "" && currentHash != storedHash
+	specChanged := w.Status.ObservedGeneration > 0 && w.Generation != w.Status.ObservedGeneration
 
 	return MemberContext{
 		Name:               w.Name,
@@ -346,12 +305,6 @@ func applyMemberStateToWorker(w *v1beta1.Worker, state *MemberState) {
 	}
 	if state.RoomID != "" {
 		w.Status.RoomID = state.RoomID
-	}
-	// Store container-spec hash in status for spec change detection.
-	// Using status (not annotation) avoids write conflicts with the
-	// status subresource update after reconcile returns.
-	if state.ContainerState != "" && state.ContainerState != "failed" {
-		w.Status.Message = containerSpecHash(w)
 	}
 	if state.ContainerState != "" {
 		w.Status.ContainerState = state.ContainerState
