@@ -228,7 +228,7 @@ func ReconcileMemberConfig(ctx context.Context, d MemberDeps, m MemberContext, s
 	}
 
 	if err := d.Deployer.PushOnDemandSkills(ctx, m.RuntimeName, m.Spec.Skills, m.Spec.RemoteSkills); err != nil {
-		logger.Info("skill push failed", "error", err)
+		logger.V(1).Info("skill push skipped (expected in K8s mode)", "worker", m.RuntimeName, "detail", err.Error())
 	}
 	return nil
 }
