@@ -258,6 +258,42 @@ func (r *WorkerReconciler) reconcileLegacy(ctx context.Context, w *v1beta1.Worke
 	}
 }
 
+// containerSpecHash computes a SHA-256 hash of WorkerSpec fields that affect
+// the container. Expose is deliberately excluded — port exposure is a
+// gateway-level operation that must not trigger container recreation.
+func containerSpecHash(w *v1beta1.Worker) string {
+	type containerRelevant struct {
+		Model            string                     ` + 'json:"model"` + '
+		Runtime          string                     ` + 'json:"runtime"` + '
+		Image            string                     ` + 'json:"image"` + '
+		Soul             string                     ` + 'json:"soul"` + '
+		Agents           string                     ` + 'json:"agents"` + '
+		Skills           []string                   ` + 'json:"skills"` + '
+		McpServers       []v1beta1.MCPServer        ` + 'json:"mcpServers"` + '
+		State            *string                    ` + 'json:"state,omitempty"` + '
+		ChannelPolicy    *v1beta1.ChannelPolicySpec ` + 'json:"channelPolicy,omitempty"` + '
+		Package          string                     ` + 'json:"package"` + '
+		ContainerManaged *bool                      ` + 'json:"containerManaged,omitempty"` + '
+	}
+	s := w.Spec
+	input := containerRelevant{
+		Model:         s.Model,
+		Runtime:       s.Runtime,
+		Image:         s.Image,
+		Soul:          s.Soul,
+		Agents:        s.Agents,
+		Skills:        s.Skills,
+		McpServers:    s.McpServers,
+		State:         s.State,
+		ChannelPolicy: s.ChannelPolicy,
+		Package:       s.Package,
+		ContainerManaged: s.ContainerManaged,
+	}
+	b, _ := json.Marshal(input)
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
 // workerMemberContext translates a Worker CR into a MemberContext for the
 // shared member reconcile helpers. The returned PodLabels are built by
 // layering four sources low-to-high: ConfigMap-based pod template (added
@@ -274,7 +310,9 @@ func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext 
 	// K8s generation increments on ANY spec change (including expose), which
 	// would trigger unnecessary pod recreation. We only care about container-
 	// affecting changes.
-	specChanged := w.Status.ObservedGeneration > 0 && w.Generation != w.Status.ObservedGeneration
+	currentHash := containerSpecHash(w)
+	storedHash := w.Annotations["hiclaw.io/container-spec-hash"]
+	specChanged := w.Status.ObservedGeneration > 0 && currentHash != "" && storedHash != "" && currentHash != storedHash
 
 	return MemberContext{
 		Name:               w.Name,
