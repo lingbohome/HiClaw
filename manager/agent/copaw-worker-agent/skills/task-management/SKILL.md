@@ -77,12 +77,23 @@ Do not edit project-level `shared/projects/{project-id}/plan.md` or `meta.json` 
    **Preview check (must complete before submit):**
 
    If you built a web application, API service, or HTTP server:
-   1. Start it bound to `0.0.0.0` (not localhost / 127.0.0.1 — the preview URL
-      reaches your container from outside, so loopback-only won't work).
-      Common frameworks: `vite --host 0.0.0.0`, `next dev -H 0.0.0.0`,
-      `uvicorn main:app --host 0.0.0.0`, `flask run --host=0.0.0.0`.
-   2. Wait for its startup log line, then verify:
-      `curl -s http://0.0.0.0:<port>` must respond.
+   1. **Use production mode, not dev/watch mode.** Dev servers with file
+      watching (hot reload) are unstable in containers — they consume
+      excessive file descriptors (EMFILE) and may crash or serve broken
+      pages. The human reviewer only needs to verify functionality, not
+      edit code. Examples:
+      - Next.js: `next build && next start -H 0.0.0.0 -p <port>`
+      - Vite: `vite build && vite preview --host 0.0.0.0 --port <port>`
+      - React CRA: `npm run build && npx serve -l <port> build`
+      - FastAPI/Flask: `uvicorn main:app --host 0.0.0.0 --port <port>`
+      (FastAPI/Flask have no watch mode by default — safe as-is.)
+      Always bind to `0.0.0.0` (not localhost/127.0.0.1).
+   2. Wait for the startup log line, then **verify content, not just
+      status**. `curl -s http://0.0.0.0:<port>` returning 200 is not
+      enough — check that the response body actually contains expected
+      content (a page title, API data, or a known string from your app).
+      If the response is empty, 404, or an error page, the service is
+      NOT ready — fix it before submitting.
    3. Include a `preview` object in the submit payload with `port` and
       optional `description`.
 
