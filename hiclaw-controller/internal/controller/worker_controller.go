@@ -140,7 +140,6 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 	}
 	// Expose runs before container - gateway operation, not container-dependent.
 	// Running it first ensures exposedPorts are always written to status.
-	log.FromContext(ctx).Info("DEBUG: about to reconcile expose", "name", w.Name, "specExpose", len(w.Spec.Expose), "statusExposed", len(w.Status.ExposedPorts))
 	_ = ReconcileMemberExpose(ctx, deps, mctx, state)
 	applyMemberStateToWorker(w, state)
 
@@ -151,17 +150,9 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 
 	r.reconcileLegacy(ctx, w, state)
 
-	// Persist container-spec hash annotation.  Use Patch (not Update)
-	// because Update modifies resourceVersion, which would cause the
-	// status subresource update from controller-runtime to conflict
-	// and silently fail — losing exposedPorts and other status fields.
-	if w.Annotations != nil && w.Annotations["hiclaw.io/container-spec-hash"] != "" {
-		base := w.DeepCopy()
-		base.Annotations["hiclaw.io/container-spec-hash"] = ""
-		if err := r.Patch(ctx, w, client.MergeFrom(base)); err != nil {
-			log.FromContext(ctx).Error(err, "failed to persist container-spec-hash annotation (non-fatal)")
-		}
-	}
+	// SINK: Status().Update() by controller-runtime after return handles status.
+	// No separate r.Update() or r.Patch() here — those modify resourceVersion
+	// and cause the status write to silently conflict and fail.
 
 	logger := log.FromContext(ctx)
 	if w.Status.ObservedGeneration == 0 {
@@ -306,7 +297,9 @@ func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext 
 	// would trigger unnecessary pod recreation. We only care about container-
 	// affecting changes.
 	currentHash := containerSpecHash(w)
-	storedHash := w.Annotations["hiclaw.io/container-spec-hash"]
+	// Store hash in status.Message (part of status subresource, same write as exposedPorts)
+	// rather than annotation (metadata — causes write conflict with status update).
+	storedHash := w.Status.Message
 	specChanged := w.Status.ObservedGeneration > 0 && currentHash != "" && storedHash != "" && currentHash != storedHash
 
 	return MemberContext{
@@ -354,14 +347,11 @@ func applyMemberStateToWorker(w *v1beta1.Worker, state *MemberState) {
 	if state.RoomID != "" {
 		w.Status.RoomID = state.RoomID
 	}
-	// Persist container-spec hash after successful container reconcile.
-	// Used by workerMemberContext to detect spec changes that actually
-	// affect the container (excludes expose/gateway-only changes).
+	// Store container-spec hash in status for spec change detection.
+	// Using status (not annotation) avoids write conflicts with the
+	// status subresource update after reconcile returns.
 	if state.ContainerState != "" && state.ContainerState != "failed" {
-		if w.Annotations == nil {
-			w.Annotations = make(map[string]string)
-		}
-		w.Annotations["hiclaw.io/container-spec-hash"] = containerSpecHash(w)
+		w.Status.Message = containerSpecHash(w)
 	}
 	if state.ContainerState != "" {
 		w.Status.ContainerState = state.ContainerState
