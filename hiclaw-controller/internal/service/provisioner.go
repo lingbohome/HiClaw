@@ -477,7 +477,7 @@ func (p *Provisioner) DeprovisionWorker(ctx context.Context, req WorkerDeprovisi
 		for _, ep := range req.ExposeSpec {
 			currentExposed = append(currentExposed, v1beta1.ExposedPortStatus{
 				Port:   ep.Port,
-				Domain: domainForExpose(req.Name, ep.Port),
+				Domain: DomainForExpose(req.Name, ep.Port),
 			})
 		}
 	}
