@@ -139,7 +139,7 @@ OPENCLAW_BASE_PUSH_ARG  = --build-arg OPENCLAW_BASE_IMAGE=$(OPENCLAW_BASE_IMAGE)
 build-hiclaw-controller: ## Build hiclaw-controller image (prerequisite for Manager)
 	@echo "==> Building hiclaw-controller image: $(LOCAL_CONTROLLER)"
 	@rm -rf ./hiclaw-controller/agent && cp -r ./manager/agent ./hiclaw-controller/agent
-	@rm -rf ./hiclaw-controller/scripts && mkdir -p ./hiclaw-controller/scripts/lib && cp ./shared/lib/* ./hiclaw-controller/scripts/lib/
+	@rm -rf ./hiclaw-controller/scripts && mkdir -p ./hiclaw-controller/scripts/lib && cp ./shared/lib/* ./hiclaw-controller/scripts/lib/ && cp ./manager/scripts/lib/* ./hiclaw-controller/scripts/lib/
 	docker build $(PLATFORM_FLAG) $(DOCKER_BUILD_ARGS) \
 		-t $(LOCAL_CONTROLLER) \
 		./hiclaw-controller/
@@ -258,7 +258,7 @@ endif
 push-hiclaw-controller: buildx-setup ## Build + push multi-arch hiclaw-controller image
 	@echo "==> Building + pushing multi-arch hiclaw-controller: $(CONTROLLER_TAG) [$(MULTIARCH_PLATFORMS)]"
 	@rm -rf ./hiclaw-controller/agent && cp -r ./manager/agent ./hiclaw-controller/agent
-	@rm -rf ./hiclaw-controller/scripts && mkdir -p ./hiclaw-controller/scripts/lib && cp ./shared/lib/* ./hiclaw-controller/scripts/lib/
+	@rm -rf ./hiclaw-controller/scripts && mkdir -p ./hiclaw-controller/scripts/lib && cp ./shared/lib/* ./hiclaw-controller/scripts/lib/ && cp ./manager/scripts/lib/* ./hiclaw-controller/scripts/lib/
 ifeq ($(IS_PODMAN),1)
 	-podman manifest rm $(CONTROLLER_TAG) 2>/dev/null
 	$(foreach plat,$(subst $(comma), ,$(MULTIARCH_PLATFORMS)), \
