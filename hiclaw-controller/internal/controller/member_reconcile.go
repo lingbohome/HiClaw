@@ -422,11 +422,30 @@ func ReconcileMemberExpose(ctx context.Context, d MemberDeps, m MemberContext, s
 	exposedPorts, err := d.Provisioner.ReconcileExpose(ctx, m.Name, m.Spec.Expose, m.CurrentExposedPorts)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to reconcile exposed ports (non-fatal)", "name", m.Name)
-		state.ExposedPorts = m.CurrentExposedPorts
-		return nil
+		// Fall back to spec-derived ports so the status isn't left empty.
+		// Non-fatal errors (e.g. Higress 409 Conflict when resources
+		// already exist) should not block the status update.
+		exposedPorts = m.specDerivedExposedPorts()
 	}
 	state.ExposedPorts = exposedPorts
 	return nil
+}
+
+// specDerivedExposedPorts constructs ExposedPortStatus from spec and the
+// domain template. Used as a fallback when Higress reconciliation fails
+// but the spec declares ports that should appear in status.
+func (m MemberContext) specDerivedExposedPorts() []v1beta1.ExposedPortStatus {
+	if len(m.Spec.Expose) == 0 {
+		return m.CurrentExposedPorts
+	}
+	result := make([]v1beta1.ExposedPortStatus, 0, len(m.Spec.Expose))
+	for _, ep := range m.Spec.Expose {
+		result = append(result, v1beta1.ExposedPortStatus{
+			Port:   ep.Port,
+			Domain: service.DomainForExpose(m.Name, ep.Port),
+		})
+	}
+	return result
 }
 
 // ReconcileMemberDelete performs full infra/container/storage cleanup for a

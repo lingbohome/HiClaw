@@ -12,10 +12,10 @@ import (
 
 // --- Port Exposure ---
 
-// domainForExpose generates the auto domain name for a worker's exposed port.
+// DomainForExpose returns the domain name for a worker's exposed port.
 // The domain template is configurable via HICLAW_EXPOSE_DOMAIN_TEMPLATE.
 // Default: worker-%s-%d-preview.cloud.hropenai.cn
-func domainForExpose(workerName string, port int) string {
+func DomainForExpose(workerName string, port int) string {
 	tmpl := os.Getenv("HICLAW_EXPOSE_DOMAIN_TEMPLATE")
 	if tmpl == "" {
 		tmpl = "worker-%s-%d-preview.cloud.hropenai.cn"
@@ -70,7 +70,7 @@ func (p *Provisioner) ReconcileExpose(ctx context.Context, workerName string, de
 			continue
 		}
 
-		domain := domainForExpose(workerName, ep.Port)
+		domain := DomainForExpose(workerName, ep.Port)
 		err := p.gateway.ExposePort(ctx, gateway.PortExposeRequest{
 			WorkerName:  workerName,
 			ServiceHost: serviceHost,
