@@ -138,12 +138,15 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 		applyMemberStateToWorker(w, state)
 		return reconcile.Result{}, err
 	}
+	// Expose runs before container - gateway operation, not container-dependent.
+	// Running it first ensures exposedPorts are always written to status.
+	_ = ReconcileMemberExpose(ctx, deps, mctx, state)
+	applyMemberStateToWorker(w, state)
+
 	if res, err := ReconcileMemberContainer(ctx, deps, mctx, state); err != nil || res.RequeueAfter > 0 {
 		applyMemberStateToWorker(w, state)
 		return res, err
 	}
-	_ = ReconcileMemberExpose(ctx, deps, mctx, state)
-	applyMemberStateToWorker(w, state)
 
 	// Persist container-spec hash annotation. Status subresource updates
 	// (done by controller-runtime after this return) don't include metadata
