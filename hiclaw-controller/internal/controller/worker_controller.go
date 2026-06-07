@@ -148,16 +148,15 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 		return res, err
 	}
 
-	// Persist container-spec hash annotation. Status subresource updates
-	// (done by controller-runtime after this return) don't include metadata
-	// changes, so we must explicitly update the object.
+	r.reconcileLegacy(ctx, w, state)
+
+	// Persist container-spec hash annotation after legacy reconciliation.
+	// Done here so a failure doesn't block the status update from above.
 	if w.Annotations != nil && w.Annotations["hiclaw.io/container-spec-hash"] != "" {
 		if err := r.Update(ctx, w); err != nil {
 			log.FromContext(ctx).Error(err, "failed to persist container-spec-hash annotation (non-fatal)")
 		}
 	}
-
-	r.reconcileLegacy(ctx, w, state)
 
 	logger := log.FromContext(ctx)
 	if w.Status.ObservedGeneration == 0 {
