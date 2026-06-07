@@ -161,7 +161,14 @@ When your coordinator asks you to revise a previously submitted task (same task-
    }
    ```
 
-4. Re-submit when revisions are complete. This overwrites `result.md` and pushes to MinIO:
+4. **Execute submit_task immediately after verifying your fix.**
+   Do NOT announce you're about to submit and wait — run it NOW.
+   The submit_task action IS the re-submission. Announcing intent
+   without executing leaves the human waiting. If you catch yourself
+   typing "正在..." (in progress...), stop and send the taskflow
+   call instead.
+
+   Re-submit when revisions are complete. This overwrites `result.md` and pushes to MinIO:
    ```json
    {
      "action": "submit_task",

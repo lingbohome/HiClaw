@@ -137,7 +137,8 @@ When your coordinator asks you to revise a previously submitted task (same task-
    hiclaw-taskflow mark-step {task-id} <step-index> x --sync
    ```
 
-5. Re-submit when revisions are complete:
+5. **Execute submit immediately after verifying your fix.**
+   Do NOT announce "正在重新提交" and wait — run the command NOW:
    ```bash
    hiclaw-taskflow submit {task-id} \
      --status SUCCESS \
@@ -145,8 +146,11 @@ When your coordinator asks you to revise a previously submitted task (same task-
      --deliverables "shared/tasks/{task-id}/output/..." \
      --sync
    ```
+   The submit command IS the re-submission. Announcing intent without
+   executing leaves the human waiting. If you catch yourself typing
+   "正在..." (in progress...), stop and run the command instead.
 
-6. @mention your coordinator:
+6. After submit succeeds, @mention your coordinator:
    ```
    @coordinator:domain TASK_COMPLETED: {task-id} - revisions applied
    ```
