@@ -151,10 +151,14 @@ func (r *WorkerReconciler) reconcileNormal(ctx context.Context, w *v1beta1.Worke
 
 	r.reconcileLegacy(ctx, w, state)
 
-	// Persist container-spec hash annotation after legacy reconciliation.
-	// Done here so a failure doesn't block the status update from above.
+	// Persist container-spec hash annotation.  Use Patch (not Update)
+	// because Update modifies resourceVersion, which would cause the
+	// status subresource update from controller-runtime to conflict
+	// and silently fail — losing exposedPorts and other status fields.
 	if w.Annotations != nil && w.Annotations["hiclaw.io/container-spec-hash"] != "" {
-		if err := r.Update(ctx, w); err != nil {
+		base := w.DeepCopy()
+		base.Annotations["hiclaw.io/container-spec-hash"] = ""
+		if err := r.Patch(ctx, w, client.MergeFrom(base)); err != nil {
 			log.FromContext(ctx).Error(err, "failed to persist container-spec-hash annotation (non-fatal)")
 		}
 	}
