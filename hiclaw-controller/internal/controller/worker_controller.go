@@ -90,6 +90,21 @@ func (r *WorkerReconciler) Reconcile(ctx context.Context, req reconcile.Request)
 			logger.Error(err, "failed to patch worker status")
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
+		// Persist container-spec hash annotation (excludes expose).
+		// Done here AFTER status patch to avoid resourceVersion conflict.
+		if reterr == nil {
+			hash := containerSpecHash(&worker)
+			if worker.Annotations == nil {
+				worker.Annotations = make(map[string]string)
+			}
+			if worker.Annotations["hiclaw.io/container-spec-hash"] != hash {
+				metaBase := worker.DeepCopy()
+				worker.Annotations["hiclaw.io/container-spec-hash"] = hash
+				if err := r.Patch(ctx, &worker, client.MergeFrom(metaBase)); err != nil {
+					logger.Error(err, "failed to patch container-spec-hash annotation (non-fatal)")
+				}
+			}
+		}
 	}()
 
 	if !worker.DeletionTimestamp.IsZero() {
