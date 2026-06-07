@@ -389,9 +389,9 @@ func (d *Deployer) renderAndPushSoulTemplate(ctx context.Context, agentPrefix st
 	return d.oss.PutObject(ctx, soulKey, []byte(result))
 }
 
-// PushOnDemandSkills pushes on-demand skills to a worker.
-// Built-in skills are pushed via push-worker-skills.sh. Remote skills are
-// fetched from source registries (currently nacos://) and mirrored to OSS.
+// PushOnDemandSkills pushes on-demand skills to a worker using OSS mirror.
+// Uses the same direct MinIO push as pushBuiltinSkills — no shell script
+// dependency, works in both embedded and K8s modes.
 func (d *Deployer) PushOnDemandSkills(ctx context.Context, workerName string, skills []string, remoteSkills []v1beta1.RemoteSkillSource) error {
 	logger := log.FromContext(ctx)
 	if len(skills) == 0 && len(remoteSkills) == 0 {
@@ -403,17 +403,28 @@ func (d *Deployer) PushOnDemandSkills(ctx context.Context, workerName string, sk
 		return err
 	}
 
-	if len(skills) == 0 || d.executor == nil {
+	if len(skills) == 0 {
 		return nil
 	}
-	scriptPath := "/opt/hiclaw/agent/skills/worker-management/scripts/push-worker-skills.sh"
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		logger.Info("push-worker-skills.sh not found (incluster mode), skipping on-demand skill push",
-			"worker", workerName, "skills", skills)
-		return nil
+
+	// Push each skill via OSS mirror — same pattern as pushBuiltinSkills.
+	// The agent template dir in the controller image has all skill sources.
+	skillsRoot := "/opt/hiclaw/agent"
+	for _, skillName := range skills {
+		// Search both worker-agent and copaw-worker-agent for the skill
+		for _, agentDir := range []string{"worker-agent", "copaw-worker-agent", "hermes-worker-agent"} {
+			src := filepath.Join(skillsRoot, agentDir, "skills", skillName) + "/"
+			if _, err := os.Stat(src); os.IsNotExist(err) {
+				continue
+			}
+			dst := agentPrefix + "/skills/" + skillName + "/"
+			if err := d.oss.Mirror(ctx, src, dst, oss.MirrorOptions{Overwrite: true}); err != nil {
+				logger.Info("on-demand skill push failed (non-fatal)", "worker", workerName, "skill", skillName, "error", err)
+			}
+			break
+		}
 	}
-	_, err := d.executor.RunSimple(ctx, scriptPath, "--worker", workerName, "--no-notify")
-	return err
+	return nil
 }
 
 func (d *Deployer) seedLocalAgentFiles(ctx context.Context, localAgentDir, agentPrefix string, excludedTopLevel map[string]struct{}) error {
