@@ -1145,6 +1145,18 @@ if [ -n "${HICLAW_GITHUB_TOKEN}" ]; then
     fi
 fi
 
+# Optional git proxy: when HICLAW_GIT_PROXY is set (e.g. socks5://proxy:7890),
+# configure git to route all HTTP/HTTPS traffic through it. When unset or
+# empty, clear any proxy config to ensure clean state.
+if [ -n "${HICLAW_GIT_PROXY}" ]; then
+    log "Configuring git proxy: ${HICLAW_GIT_PROXY}"
+    git config --global http.proxy "${HICLAW_GIT_PROXY}"
+    git config --global https.proxy "${HICLAW_GIT_PROXY}"
+else
+    git config --global --unset http.proxy 2>/dev/null || true
+    git config --global --unset https.proxy 2>/dev/null || true
+fi
+
 log "HOME=${HOME} (manager-workspace, host-mounted)"
 
 # ── Render agent doc templates ────────────────────────────────────────────
