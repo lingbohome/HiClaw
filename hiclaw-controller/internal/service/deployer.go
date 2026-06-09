@@ -708,13 +708,6 @@ func (d *Deployer) DeployManagerConfig(ctx context.Context, req ManagerDeployReq
 		}
 	}
 
-	// Also write to manager/openclaw.json — the Manager's K8s pull loop
-	// reads from this path, not from agents/<name>/. Without this, the
-	// Manager runs on a stale self-pushed copy in a closed loop.
-	if err := d.oss.PutObject(ctx, "manager/openclaw.json", configJSON); err != nil {
-		logger.Error(err, "manager/openclaw.json push failed (non-fatal)")
-	}
-
 	// --- SOUL.md (only if explicitly set in CRD spec) ---
 	if req.Spec.Soul != "" {
 		if err := d.oss.PutObject(ctx, agentPrefix+"/SOUL.md", []byte(req.Spec.Soul)); err != nil {
