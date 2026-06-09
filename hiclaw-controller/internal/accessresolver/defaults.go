@@ -91,6 +91,7 @@ func DefaultEntriesForManager() []v1beta1.AccessEntry {
 				"bucketRef": "workspace",
 				"prefixes": []any{
 					"agents/${self.name}/*",
+					"agents/*",
 					"shared/*",
 					"manager/*",
 				},

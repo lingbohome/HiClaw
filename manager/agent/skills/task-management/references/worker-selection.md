@@ -29,9 +29,11 @@ Output includes `summary` (idle/busy/stopped/unavailable counts) and `workers` a
 ## Decision flow (delegation-first)
 
 1. **Task matches a Team** → delegate to Team Leader (preferred for complex, multi-skill tasks)
-2. **Idle standalone workers exist** → pick best match by role + skills, present as Option A (strongly recommended)
-3. **Only busy workers** → present workload info, suggest Option B (import/create a new Worker) or wait
-4. **No workers at all** → suggest Option B. Only fall back to Option C if admin explicitly requests it
+2. **Find available workers** — run `find-worker.sh`. If result is empty or "no workers", DO NOT jump to Option B. First verify: did the registry fallback run? Check if `hiclaw get workers -o json` returns Workers that aren't in the local registry. A stale/empty registry is a sync problem, not a "no workers exist" problem.
+3. **Project match** — if the task has a repository URL or project name, prefer Workers whose `name` or `role` field references that project. A Worker named after a project or whose role describes it as that project's dedicated developer is the best match — use it.
+4. **Idle standalone workers exist** → pick best match by project affinity first, then role + skills. Present as Option A (strongly recommended).
+5. **Only busy workers** → present workload info, suggest Option B (import/create a new Worker) or wait.
+6. **No workers at all** (confirmed — registry is fresh, Controller API also returns empty) → suggest Option B. Only fall back to Option C if admin explicitly requests it.
 
 Options:
 - **Option A** (preferred) — Assign to idle Worker
@@ -40,7 +42,7 @@ Options:
 
 Act on choice: A → ensure container ready then assign; B → create Worker then assign; C → work directly (no task directory needed).
 
-**Skip Step 0 when**: admin names a Worker, says "do it yourself", or it's a heartbeat-triggered infinite task. In YOLO mode, the admin is unavailable — autonomously pick the best Worker or create one without asking.
+**Skip Step 0 when**: admin names a Worker, says "do it yourself", or it's a heartbeat-triggered infinite task. In YOLO mode, the admin is unavailable — still follow the decision flow above (check registry freshness, prefer project Workers), but auto-decide without waiting for confirmation.
 
 ## Before assigning: container readiness
 

@@ -58,12 +58,21 @@ When `YOLO_ON`: the admin has delegated full authority to you and is **unreachab
 - **Noisy @mentions cause infinite loops** — if your message doesn't require the recipient to *do* something, don't @mention them (no thanks, confirmations, farewells)
 - **Mirror loop safeguard** — if 2+ rounds of @mentions exchanged with no new task/question/decision, stop replying immediately
 - **Never run heartbeat from a Worker message** — heartbeat polls come from the OpenClaw runtime, not from Workers. If a Worker says "standing by", "got it", or anything conversational, that is NOT a heartbeat — do not read HEARTBEAT.md or run any checklist in response
-- **Worker 30-minute timeout** — Workers may be processing complex tasks; don't assume unresponsive too early
+- **Worker ack vs execution timeout — they are different things:**
+    - **Ack timeout (10 min):** After assigning a task, the Worker must acknowledge (ack) or reply within 10 minutes. If silent, re-send the task notification. This is NOT about task completion — it's about confirming the Worker received the assignment.
+    - **Execution timeout (30+ min):** Once acked, complex tasks take time. The heartbeat will continue checking progress every cycle — don't skip checks because "it hasn't been 30 minutes." That rule is about not ESCALATING, not about not MONITORING.
 - **Host files need explicit authorization** — never scan/search/read host files without admin permission
 - **Peer mentions default off** — only Manager/Admin can @mention Workers. To enable inter-worker mentions, see worker-management skill's peer-mentions reference
 - **Identity and permissions** — sender identification and trusted contact rules are in the channel-management skill
 - **Worker reports completion → load task-management skill and execute full flow** — do NOT just acknowledge in chat. You MUST: (1) pull task directory from MinIO, (2) read result, (3) update meta.json + state.json, (4) write memory, (5) notify admin. Skipping any step leaves stale state and missing results.
 - **Every task delegated to a Worker MUST be registered in state.json** — no exceptions for "simple", "coordination", or "non-coding" tasks. Unregistered tasks cause the Worker to be auto-stopped mid-work by idle timeout.
+- **ALWAYS use `manage-state.sh` to update state.json** — never edit it manually with jq. The script handles atomicity, deduplication, and initialization.
+- **Manager NEVER executes tasks — you PLAN, DISPATCH, and MONITOR.**
+    - Your job: analyze requirements → create spec.md → select Worker → dispatch → monitor progress → verify delivery.
+    - NOT your job: writing code, modifying project files, editing configs, running build commands, or doing anything that changes the repository. That belongs to the Worker.
+    - If you find yourself about to edit a file in the project repo — STOP. You are doing the Worker's job. Create a Worker instead.
+    - The only files you modify are in `~/` (your workspace): `state.json`, `workers-registry.json`, `memory/`, `HEARTBEAT.md`, `SOUL.md`.
+- **`find-worker.sh` returning empty does NOT mean create a new Worker** — first verify: is the registry stale? Did you run `_ensure_registry`? Could existing Workers have been stopped and need restart? Check with `hiclaw get workers -o json` before creating. A project-dedicated Worker (e.g. `zhiran-website-worker`) exists for a reason — find it and use it.
 - **NEVER assign tasks to Workers by writing @worker mentions in admin DM reply text** — Workers cannot see DM messages. When delegating work, you MUST send the task notification to the Worker's Room using the `message` tool with `channel=matrix` and `target=room:<room_id>` (get `roomID` from `hiclaw get workers -o json` — use `.roomID` in `jq`). The admin DM reply should only confirm to admin that the task was assigned.
 - **Push to MinIO BEFORE notifying Worker** — Worker cannot file-sync until files exist in MinIO. Always verify `mc cp` succeeds before sending @mention. If you notify first, Worker gets an empty sync.
 - **After re-syncing files for a Worker, always @mention them** — if a Worker reports they can't find files and you push/re-push to MinIO, you MUST @mention the Worker telling them to file-sync again. Without the @mention, the Worker never knows the files are ready.

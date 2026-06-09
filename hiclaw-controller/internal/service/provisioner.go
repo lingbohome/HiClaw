@@ -600,6 +600,18 @@ func (p *Provisioner) RefreshManagerCredentials(ctx context.Context, managerName
 		}
 	}
 
+	// Re-apply MinIO policy on every reconcile (idempotent) so policy
+	// changes (e.g. new agents/* prefix) propagate without requiring
+	// Manager CR deletion and re-provisioning.
+	if p.ossAdmin != nil {
+		if err := p.ossAdmin.EnsurePolicy(ctx, oss.PolicyRequest{
+			WorkerName: managerName,
+			IsManager:  true,
+		}); err != nil {
+			return nil, fmt.Errorf("refresh manager minio policy: %w", err)
+		}
+	}
+
 	return &RefreshResult{
 		MatrixToken:    matrixToken,
 		GatewayKey:     creds.GatewayKey,

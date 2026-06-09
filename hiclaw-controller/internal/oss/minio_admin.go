@@ -137,9 +137,12 @@ func (c *MinIOAdminClient) buildWorkerPolicy(workerName, bucket, teamName string
 		listPrefixes = append(listPrefixes,
 			"manager",
 			"manager/*",
+			"agents",    // list all worker agent directories
+			"agents/*",  // list all worker agent files (SOUL.md, etc.)
 		)
 		rwResources = append(rwResources,
 			fmt.Sprintf("arn:aws:s3:::%s/manager/*", bucket),
+			fmt.Sprintf("arn:aws:s3:::%s/agents/*", bucket), // read Worker SOUL.md, workers-registry.json, etc.
 		)
 	}
 

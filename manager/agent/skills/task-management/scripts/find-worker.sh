@@ -19,6 +19,7 @@
 set -euo pipefail
 
 REGISTRY_FILE="${HOME}/workers-registry.json"
+REGISTRY_MINIO_KEY="${HICLAW_STORAGE_PREFIX}/agents/manager/workers-registry.json"
 STATE_FILE="${HOME}/state.json"
 LIFECYCLE_FILE="${HOME}/worker-lifecycle.json"
 AGENTS_DIR="/root/hiclaw-fs/agents"
@@ -41,16 +42,42 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ─── Ensure registry is populated (three-tier fallback) ─────────────────────
+# 1. Local file already valid → use it
+# 2. Pull from MinIO (embedded mode)
+# 3. Controller REST API → transform to registry format (K8s/cloud mode)
+
+_ensure_registry() {
+    if [ -s "$REGISTRY_FILE" ] && [ "$(jq '.workers | length' "$REGISTRY_FILE" 2>/dev/null || echo 0)" -gt 0 ]; then
+        return 0
+    fi
+    # Try MinIO first
+    if mc cat "$REGISTRY_MINIO_KEY" > "${REGISTRY_FILE}.tmp" 2>/dev/null; then
+        mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
+        return 0
+    fi
+    # Fallback: Controller REST API
+    if hiclaw get workers -o json > /tmp/hiclaw-workers.json 2>/dev/null; then
+        jq 'reduce .[] as $w ({}; .[$w.name] = $w) | {version: 1, updated_at: now|todate, workers: .}' \
+            /tmp/hiclaw-workers.json > "$REGISTRY_FILE" 2>/dev/null
+        rm -f /tmp/hiclaw-workers.json
+        return 0
+    fi
+    return 1
+}
+
+_ensure_registry
+
 # ─── Validate data sources ───────────────────────────────────────────────────
 
 if [ ! -f "$REGISTRY_FILE" ]; then
-    echo '{"error":"workers-registry.json not found — no workers registered yet","workers":[]}'
+    echo '{"error":"workers-registry.json not found after all fallbacks — no workers available","workers":[]}'
     exit 0
 fi
 
 WORKER_COUNT=$(jq '.workers | length' "$REGISTRY_FILE" 2>/dev/null || echo 0)
 if [ "$WORKER_COUNT" -eq 0 ]; then
-    echo '{"error":"no workers in registry","workers":[]}'
+    echo '{"error":"no workers in registry after all fallbacks","workers":[]}'
     exit 0
 fi
 
