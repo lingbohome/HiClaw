@@ -89,6 +89,7 @@ jobs:
           - push-copaw-worker
           - push-hermes-worker
           - push-manager
+          - push-manager-copaw
 
     steps:
       - name: Checkout (patch branch)
@@ -110,9 +111,9 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.version || 'latest' }}"
           MAKE_OPTS=""
-          if [ "${{ matrix.target }}" = "push-manager" ]; then
-            # push-manager depends on push-hiclaw-controller in Makefile.
-            # Controller was already built by the controller job above — skip the redundant build.
+          if [ "${{ matrix.target }}" = "push-manager" ] || [ "${{ matrix.target }}" = "push-manager-copaw" ]; then
+            # push-manager / push-manager-copaw depend on push-hiclaw-controller
+            # in Makefile. Controller was already built — skip the redundant build.
             MAKE_OPTS="-o push-hiclaw-controller"
           fi
           make ${MAKE_OPTS} ${{ matrix.target }} \
