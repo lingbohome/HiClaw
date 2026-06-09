@@ -1209,7 +1209,9 @@ if [ "${HICLAW_RUNTIME}" = "aliyun" ]; then
             sleep 60
             ensure_mc_credentials 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" /root/hiclaw-fs/shared/ --overwrite --newer-than "1m" 2>/dev/null || true
-            mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" 2>/dev/null || true
+            mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" \
+                --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
+                --exclude "*/.local/**" --exclude "*/.openclaw/**" 2>/dev/null || true
             mc cp "${HICLAW_STORAGE_PREFIX}/manager/openclaw.json" /root/manager-workspace/openclaw.json 2>/dev/null || true
         done
     ) &
@@ -1241,7 +1243,9 @@ if [ "${HICLAW_RUNTIME}" = "k8s" ]; then
         while true; do
             sleep 60
             mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" /root/hiclaw-fs/shared/ --overwrite --newer-than "1m" 2>/dev/null || true
-            mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" 2>/dev/null || true
+            mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" \
+                --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
+                --exclude "*/.local/**" --exclude "*/.openclaw/**" 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/hiclaw-config/" /root/hiclaw-fs/hiclaw-config/ --overwrite --newer-than "1m" 2>/dev/null || true
             mc cp "${HICLAW_STORAGE_PREFIX}/manager/openclaw.json" /root/manager-workspace/openclaw.json 2>/dev/null || true
         done
