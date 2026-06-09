@@ -1,0 +1,61 @@
+name: Push Manager CoPaw Image
+
+# Fast standalone build — Manager CoPaw uses pre-built controller image,
+# no Go compilation needed. Only COPY + pip install.
+#
+# Triggered manually from https://github.com/lingbohome/HiClaw/actions.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image tag (default: latest)'
+        required: false
+        default: 'latest'
+      controller_tag:
+        description: 'Controller image tag (default: latest)'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: registry.cn-shanghai.aliyuncs.com
+  REPO: lingbohome
+  HIGRESS_REGISTRY: higress-registry.us-west-1.cr.aliyuncs.com
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (patch branch)
+        uses: actions/checkout@v4
+        with:
+          ref: patch
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Alibaba Cloud Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ALIYUN_REGISTRY_USERNAME }}
+          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+
+      - name: Build and push manager-copaw
+        run: |
+          TAG="${{ github.event.inputs.version || 'latest' }}"
+          CTRL_TAG="${{ github.event.inputs.controller_tag || 'latest' }}"
+          CONTROLLER_IMAGE="${REGISTRY}/${REPO}/hiclaw-controller:${CTRL_TAG}"
+
+          echo "==> Building Manager CoPaw image (tag=${TAG}, controller=${CONTROLLER_IMAGE})"
+
+          make push-manager-copaw \
+            VERSION="${TAG}" \
+            REGISTRY="${REGISTRY}" \
+            REPO="${REPO}" \
+            MULTIARCH_PLATFORMS=linux/amd64 \
+            HICLAW_CONTROLLER_IMAGE="${CONTROLLER_IMAGE}" \
+            HIGRESS_REGISTRY="${HIGRESS_REGISTRY}" \
+            DOCKER_BUILD_ARGS="--build-arg APT_MIRROR= --build-arg PIP_INDEX_URL=https://pypi.org/simple/" \
+            -o push-hiclaw-controller \
+            -o push-openclaw-base
