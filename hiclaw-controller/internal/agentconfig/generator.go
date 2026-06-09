@@ -148,7 +148,6 @@ func (g *Generator) GenerateOpenClawConfig(req WorkerConfigRequest) ([]byte, err
 		"session": map[string]interface{}{
 			"resetByType": map[string]interface{}{
 				"dm":    map[string]interface{}{"mode": "daily", "atHour": 4},
-				"group": map[string]interface{}{"mode": "daily", "atHour": 4},
 			},
 		},
 		"plugins": map[string]interface{}{
