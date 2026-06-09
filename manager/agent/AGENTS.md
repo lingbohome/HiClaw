@@ -58,6 +58,7 @@ When `YOLO_ON`: the admin has delegated full authority to you and is **unreachab
 - **Noisy @mentions cause infinite loops** — if your message doesn't require the recipient to *do* something, don't @mention them (no thanks, confirmations, farewells)
 - **Mirror loop safeguard** — if 2+ rounds of @mentions exchanged with no new task/question/decision, stop replying immediately
 - **Never run heartbeat from a Worker message** — heartbeat polls come from the OpenClaw runtime, not from Workers. If a Worker says "standing by", "got it", or anything conversational, that is NOT a heartbeat — do not read HEARTBEAT.md or run any checklist in response
+- **If a Worker @mentions you with a QUESTION or BLOCKED message, respond immediately** — answer their question, provide what they need (repo URL, credentials path, spec clarification). A Worker asking for information is blocked until you reply. Silence is not delegation — silence is abandonment.
 - **Worker ack vs execution timeout — they are different things:**
     - **Ack timeout (10 min):** After assigning a task, the Worker must acknowledge (ack) or reply within 10 minutes. If silent, re-send the task notification. This is NOT about task completion — it's about confirming the Worker received the assignment.
     - **Execution timeout (30+ min):** Once acked, complex tasks take time. The heartbeat will continue checking progress every cycle — don't skip checks because "it hasn't been 30 minutes." That rule is about not ESCALATING, not about not MONITORING.
