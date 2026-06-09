@@ -33,6 +33,14 @@
 
    **Write `spec.md`** (requirements, acceptance criteria, context).
 
+   **If the task involves a code repository**, spec.md MUST include:
+   - The repository URL so the Worker can clone it
+   - The base branch to work from (e.g. `master`)
+   - Any project-specific context discovered in Step 0 (AGENTS.md conventions,
+     tech stack, directory structure)
+   - Do NOT assume the Worker already has the code — they start from a clean
+     container and must clone fresh.
+
 3. Push to MinIO **immediately** — Worker cannot file-sync until files are in MinIO:
    ```bash
    mc cp /root/hiclaw-fs/shared/tasks/{task-id}/meta.json ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/meta.json
@@ -56,7 +64,7 @@
 
    c) Compose the body the Worker must receive (full Matrix @mention so they wake):
    ```
-   @{worker}:{domain} New task [{task-id}]: {title}. Use your file-sync skill to pull the spec: shared/tasks/{task-id}/spec.md. @mention me when complete.
+   @{worker}:{domain} New task [{task-id}]: {title}. Use your file-sync skill to pull all files from shared/tasks/{task-id}/. The spec.md contains the full requirements — including the repository URL if this is a coding task. Clone the repo and follow the spec. @mention me when complete.
    ```
 
    d) Send that body to the Worker's room, branching on runtime from step (b):

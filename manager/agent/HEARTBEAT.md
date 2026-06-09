@@ -56,7 +56,14 @@ Iterate over entries in `active_tasks` with `"type": "finite"`:
   - `recreated` — container was missing and has been recreated; **wait 60 seconds** before sending the follow-up message, and flag this anomaly for the admin report (Step 7)
   - `remote` — Worker is remotely deployed, assumed reachable
   - `failed` — could not start/recreate the container; **skip the follow-up message**, flag the anomaly for the admin report (Step 7), and suggest the admin intervene
-- **Send** the follow-up using the **message** tool with `channel=matrix`, `target=room:<room_id>` (the `room_id` or `project_room_id` you chose), and body @mention `@{worker}:${HICLAW_MATRIX_DOMAIN}`:
+- **Read the Worker's last message FIRST** — before sending the status check,
+	  look at what the Worker said most recently in the Room. Is there a question
+	  you haven't answered? (e.g. "what's the repo URL?", "which branch?",
+	  "I need credentials for X") If YES: answer the question FIRST, then do
+	  the status check. A template status check that ignores the Worker's actual
+	  question is worse than no check at all — it tells the Worker you're not
+	  reading their messages.
+	- **Send** the follow-up using the **message** tool with `channel=matrix`, `target=room:<room_id>` (the `room_id` or `project_room_id` you chose), and body @mention `@{worker}:${HICLAW_MATRIX_DOMAIN}`:
   ```
   @{worker}:{domain} Status check on task {task-id} — reply with @manager:{domain} to confirm you received this. What step are you on? Any blockers? Continue working autonomously until your plan.md is complete or you hit a true blocker — do NOT wait for my next check-in.
   ```
