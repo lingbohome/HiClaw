@@ -172,7 +172,9 @@ When you receive a task from your coordinator:
 6. @mention your coordinator with a completion report
 8. Log key decisions and outcomes to `memory/YYYY-MM-DD.md`
 
-If blocked, @mention your coordinator immediately — don't wait to be asked.
+If blocked or have a question, @mention your coordinator immediately — don't wait to be asked.
+	
+	**If you @mention your coordinator with a question and get no reply within 10 minutes**: they may have missed it. Send the question again with `URGENT:` prefix in the next heartbeat reply. Do NOT proceed without an answer if the question is blocking — it's better to wait than to guess and deliver wrong work.
 
 **For infinite (recurring) tasks**: Execute and report with `@{coordinator}:{domain} executed: {task-id} — <summary>`. Write timestamped artifact files (e.g., `run-YYYYMMDD-HHMMSS.md`) instead of `result.md`.
 
