@@ -163,7 +163,7 @@ if [ "${HICLAW_RUNTIME}" = "aliyun" ]; then
     ensure_mc_credentials
     mc mirror "${HICLAW_STORAGE_PREFIX}/manager/" /root/manager-workspace/ --overwrite 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_FS}/shared/" --overwrite \
-        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" --exclude "**/shared/**" 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" "${HICLAW_FS}/agents/" --overwrite \
         --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     # Symlink hiclaw-fs into workspace for agent access
@@ -179,7 +179,7 @@ if [ "${HICLAW_RUNTIME}" = "k8s" ]; then
     log "Syncing workspace from MinIO..."
     mc mirror "${HICLAW_STORAGE_PREFIX}/manager/" /root/manager-workspace/ --overwrite 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_FS}/shared/" --overwrite \
-        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" --exclude "**/shared/**" 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" "${HICLAW_FS}/agents/" --overwrite \
         --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/hiclaw-config/" "${HICLAW_FS}/hiclaw-config/" --overwrite 2>/dev/null || true
@@ -1215,7 +1215,7 @@ if [ "${HICLAW_RUNTIME}" = "aliyun" ]; then
             sleep 60
             ensure_mc_credentials 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" /root/hiclaw-fs/shared/ --overwrite --newer-than "1m" \
-                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" --exclude "**/shared/**" 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" \
                 --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
                 --exclude "*/.local/**" --exclude "*/.openclaw/**" 2>/dev/null || true
@@ -1250,7 +1250,7 @@ if [ "${HICLAW_RUNTIME}" = "k8s" ]; then
         while true; do
             sleep 60
             mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" /root/hiclaw-fs/shared/ --overwrite --newer-than "1m" \
-                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" --exclude "**/shared/**" 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" \
                 --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
                 --exclude "*/.local/**" --exclude "*/.openclaw/**" 2>/dev/null || true

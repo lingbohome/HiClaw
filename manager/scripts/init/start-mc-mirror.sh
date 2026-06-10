@@ -70,7 +70,7 @@ mkdir -p "${HICLAW_FS_ROOT}/hiclaw-config"
 
 # Initial full sync to local (workers + shared)
 mc mirror "${HICLAW_STORAGE_PREFIX}/" "${HICLAW_FS_ROOT}/" --overwrite \
-    --exclude "**/node_modules/**"
+    --exclude "**/node_modules/**" --exclude "**/shared/**"
 
 # Signal that initialization is complete
 touch "${HICLAW_FS_ROOT}/.initialized"
@@ -92,5 +92,5 @@ log "MinIO storage initialized and synced to ${HICLAW_FS_ROOT}/"
 while true; do
     sleep 300
     mc mirror "${HICLAW_STORAGE_PREFIX}/" "${HICLAW_FS_ROOT}/" --overwrite --newer-than "5m" \
-        --exclude "**/node_modules/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "**/shared/**" 2>/dev/null || true
 done

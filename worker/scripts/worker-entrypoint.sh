@@ -188,7 +188,7 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
                 --exclude ".last-pull" \
                 --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" \
                 --exclude "SOUL.md" --exclude "AGENTS.md" --exclude "HEARTBEAT.md" \
-                --exclude "shared/**" --exclude "**/node_modules/**" 2>&1; then
+                --exclude "**/shared/**" --exclude "**/node_modules/**" 2>&1; then
                 log "WARNING: Local->Remote sync failed"
             fi
             # Per-file push for agent-self-modifiable files: only when locally
@@ -228,7 +228,7 @@ log "Local->Remote change-triggered sync started (PID: $!, interval: 60s)"
                 status=$(jq -r '.status // empty' "$meta" 2>/dev/null)
                 [ "$status" = "in_progress" ] || continue
                 mc mirror "$task_dir" "${HICLAW_STORAGE_PREFIX}/shared/tasks/$(basename "$task_dir")/" --overwrite                     --exclude "spec.md" --exclude "base/**"                     --exclude "meta.json" --exclude "result.md"                     --exclude "**/node_modules/**" --exclude "*/.git/**"                     --exclude "*/.cache/**" --exclude "*/.npm/**" \
-                    --exclude "shared/**" 2>/dev/null || true
+                    --exclude "**/shared/**" 2>/dev/null || true
             done
         done
 ) &
@@ -254,7 +254,7 @@ log "Task file sync started (PID: $!, interval: 120s)"
         # handle intentional sync. This fallback only creates new directories
         # and files that don't exist locally (e.g. newly assigned tasks).
         mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --newer-than "5m" \
-            --exclude "**/node_modules/**" 2>/dev/null || true
+            --exclude "**/node_modules/**" --exclude "**/shared/**" 2>/dev/null || true
         # Refresh PULL_MARKER so the change-triggered push loop doesn't
         # re-trigger forever on freshly-pulled openclaw.json/skills mtimes,
         # and so the per-file -nt guard correctly classifies post-pull edits.

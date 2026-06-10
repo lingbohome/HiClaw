@@ -447,7 +447,8 @@ class FileSync:
         logger.info("mirror_all: shared mirror remote=%s local=%s", shared_remote, shared_local)
         try:
             _mc("mirror", shared_remote, shared_local, "--overwrite",
-            "--exclude", "**/node_modules/**", check=True)
+            "--exclude", "**/node_modules/**",
+            "--exclude", "**/shared/**", check=True)
             logger.info("mirror_all: shared/ mirror completed from %s", shared_remote)
         except subprocess.CalledProcessError as exc:
             logger.warning(
@@ -867,7 +868,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
                     "--exclude", "meta.json",
                     "--exclude", "result.md",
                     "--exclude", "**/node_modules/**",
-                    "--exclude", "shared/**",
+                    "--exclude", "**/shared/**",
                     check=False,
                 )
         except Exception:
