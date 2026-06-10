@@ -625,6 +625,9 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
                         assigned = meta.get('assigned_to') or meta.get('assigned_worker') or ''
                         if assigned != worker_name:
                             continue
+                        status = meta.get('status', '')
+                        if status in ('completed', 'submitted'):
+                            continue  # done, no more progress to sync
                 except Exception:
                     continue  # can't read meta, skip this task
                 _mc(

@@ -225,6 +225,8 @@ log "Local->Remote change-triggered sync started (PID: $!)"
                 [ -f "$meta" ] || continue
                 assigned=$(jq -r '.assigned_to // .assigned_worker // empty' "$meta" 2>/dev/null)
                 [ "$assigned" = "${HICLAW_WORKER_NAME}" ] || continue
+                status=$(jq -r '.status // empty' "$meta" 2>/dev/null)
+                [ "$status" != "completed" ] && [ "$status" != "submitted" ] || continue
                 mc mirror "$task_dir" "${HICLAW_STORAGE_PREFIX}/shared/tasks/$(basename "$task_dir")/" --overwrite                     --exclude "spec.md" --exclude "base/**"                     --exclude "meta.json" --exclude "result.md"                     --exclude "*/node_modules/**" --exclude "*/.git/**"                     --exclude "*/.cache/**" --exclude "*/.npm/**" \
                     --exclude "shared/**" 2>/dev/null || true
             done
