@@ -117,7 +117,7 @@ func NewK8sBackendWithClient(client K8sCoreClient, config K8sConfig, containerPr
 		config.WorkerCPU = "1000m"
 	}
 	if config.WorkerMemory == "" {
-		config.WorkerMemory = "2Gi"
+		config.WorkerMemory = "4Gi"
 	}
 	return &K8sBackend{
 		client:          client,
@@ -389,7 +389,7 @@ func buildDefaultResources(workerCPU, workerMemory string) corev1.ResourceRequir
 		workerCPU = "1000m"
 	}
 	if workerMemory == "" {
-		workerMemory = "2Gi"
+		workerMemory = "4Gi"
 	}
 	return corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
