@@ -47,7 +47,8 @@ Before sending the coding-request, push all workspace files so the Manager can a
 
 ```bash
 mc mirror "/root/hiclaw-fs/shared/tasks/{task-id}/workspace/" \
-  ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/workspace/
+  ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/workspace/ \
+  --exclude "**/node_modules/**" --exclude "shared/**"
 ```
 
 ### 2b. Check for Processing Marker

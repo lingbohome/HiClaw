@@ -232,7 +232,7 @@ class FileSync:
         try:
             _mc("mirror", remote, local, "--overwrite",
                  "--exclude", "credentials/**",
-                 "--exclude", "*/node_modules/**",
+                 "--exclude", "**/node_modules/**",
                  "--exclude", "*/.cache/**", "--exclude", "*/.npm/**", check=True)
             logger.info("mirror_all: full mirror completed from %s", remote)
         except subprocess.CalledProcessError as exc:
@@ -243,7 +243,7 @@ class FileSync:
         shared_local = str(self.local_dir / "shared") + "/"
         try:
             _mc("mirror", shared_remote, shared_local, "--overwrite",
-            "--exclude", "*/node_modules/**", check=True)
+            "--exclude", "**/node_modules/**", check=True)
             logger.info(
                 "mirror_all: shared/ mirror completed from %s", shared_remote
             )
@@ -418,7 +418,7 @@ class FileSync:
             result = _mc(
                 "mirror",
                 shared_remote,
-            "--exclude", "*/node_modules/**",
+            "--exclude", "**/node_modules/**",
                 str(shared_local) + "/",
                 check=False,
             )
@@ -639,7 +639,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
                     "--exclude", "base/**",
                     "--exclude", "meta.json",
                     "--exclude", "result.md",
-                    "--exclude", "*/node_modules/**",
+                    "--exclude", "**/node_modules/**",
                     "--exclude", "shared/**",
                     check=False,
                 )

@@ -163,9 +163,9 @@ if [ "${HICLAW_RUNTIME}" = "aliyun" ]; then
     ensure_mc_credentials
     mc mirror "${HICLAW_STORAGE_PREFIX}/manager/" /root/manager-workspace/ --overwrite 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_FS}/shared/" --overwrite \
-        --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" "${HICLAW_FS}/agents/" --overwrite \
-        --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     # Symlink hiclaw-fs into workspace for agent access
     ln -sfn "${HICLAW_FS}" /root/manager-workspace/hiclaw-fs
 fi
@@ -179,9 +179,9 @@ if [ "${HICLAW_RUNTIME}" = "k8s" ]; then
     log "Syncing workspace from MinIO..."
     mc mirror "${HICLAW_STORAGE_PREFIX}/manager/" /root/manager-workspace/ --overwrite 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_FS}/shared/" --overwrite \
-        --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" "${HICLAW_FS}/agents/" --overwrite \
-        --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+        --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
     mc mirror "${HICLAW_STORAGE_PREFIX}/hiclaw-config/" "${HICLAW_FS}/hiclaw-config/" --overwrite 2>/dev/null || true
     ln -sfn "${HICLAW_FS}" /root/manager-workspace/hiclaw-fs
     touch "${HICLAW_FS}/.initialized"
@@ -1215,9 +1215,9 @@ if [ "${HICLAW_RUNTIME}" = "aliyun" ]; then
             sleep 60
             ensure_mc_credentials 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" /root/hiclaw-fs/shared/ --overwrite --newer-than "1m" \
-                --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" \
-                --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
+                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
                 --exclude "*/.local/**" --exclude "*/.openclaw/**" 2>/dev/null || true
             mc cp "${HICLAW_STORAGE_PREFIX}/manager/openclaw.json" /root/manager-workspace/openclaw.json 2>/dev/null || true
         done
@@ -1250,9 +1250,9 @@ if [ "${HICLAW_RUNTIME}" = "k8s" ]; then
         while true; do
             sleep 60
             mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" /root/hiclaw-fs/shared/ --overwrite --newer-than "1m" \
-                --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
+                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/agents/" /root/hiclaw-fs/agents/ --overwrite --newer-than "1m" \
-                --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
+                --exclude "**/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**" \
                 --exclude "*/.local/**" --exclude "*/.openclaw/**" 2>/dev/null || true
             mc mirror "${HICLAW_STORAGE_PREFIX}/hiclaw-config/" /root/hiclaw-fs/hiclaw-config/ --overwrite --newer-than "1m" 2>/dev/null || true
             mc cp "${HICLAW_STORAGE_PREFIX}/manager/openclaw.json" /root/manager-workspace/openclaw.json 2>/dev/null || true

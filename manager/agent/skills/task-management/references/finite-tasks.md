@@ -98,7 +98,7 @@ When a Worker @mentions you with task completion:
 1. Pull task directory from MinIO (Worker has pushed results):
    ```bash
    mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ /root/hiclaw-fs/shared/tasks/{task-id}/ --overwrite \
-       --exclude "*/node_modules/**"
+       --exclude "**/node_modules/**"
    ```
 
 2. Notify admin — the task is ready for review. Read `SOUL.md` first for persona/language, then resolve channel:
@@ -119,7 +119,7 @@ When you receive a DM containing `[NOTICE] Task [...] has been ACCEPTED`:
 1. Pull task directory from MinIO:
    ```bash
    mc mirror ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ /root/hiclaw-fs/shared/tasks/{task-id}/ --overwrite \
-       --exclude "*/node_modules/**"
+       --exclude "**/node_modules/**"
    ```
 
 2. Verify deliverables exist — check `result.md` and any referenced deliverables.

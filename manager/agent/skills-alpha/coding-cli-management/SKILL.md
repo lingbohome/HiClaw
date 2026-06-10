@@ -133,7 +133,7 @@ bash /opt/hiclaw/agent/skills/task-coordination/scripts/remove-processing-marker
 
 # 8. On success (exit 0): push changes to MinIO
 if [ "$exit_code" -eq 0 ]; then
-    mc mirror "/root/hiclaw-fs/shared/tasks/${task_id}/workspace/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/${task_id}/workspace/" --overwrite
+    mc mirror "/root/hiclaw-fs/shared/tasks/${task_id}/workspace/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/${task_id}/workspace/" --overwrite --exclude "**/node_modules/**" --exclude "shared/**"
 fi
 ```
 

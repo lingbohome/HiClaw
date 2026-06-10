@@ -32,7 +32,7 @@ Format (append, don't overwrite):
 
 Push the task directory after each update:
 ```bash
-mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/"
+mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/" --exclude "**/node_modules/**" --exclude "shared/**"
 ```
 
 ## Task History (LRU Top 10)

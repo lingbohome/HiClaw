@@ -91,7 +91,7 @@ The marker auto-expires after 15 minutes (configurable). This prevents deadlocks
 
 6. **Sync to MinIO**:
    ```bash
-   mc mirror "/root/hiclaw-fs/shared/tasks/${task_id}/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/${task_id}/" --overwrite
+   mc mirror "/root/hiclaw-fs/shared/tasks/${task_id}/" "${HICLAW_STORAGE_PREFIX}/shared/tasks/${task_id}/" --overwrite --exclude "spec.md" --exclude "base/" --exclude "**/node_modules/**" --exclude "shared/**"
    ```
 
 ---

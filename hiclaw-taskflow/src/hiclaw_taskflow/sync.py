@@ -72,7 +72,7 @@ def push_task(task_id: str, workspace: Path | None = None) -> dict:
         "--exclude",
         "base/",
         "--exclude",
-        "node_modules/**",
+        "**/node_modules/**",
     ]
 
     try:
