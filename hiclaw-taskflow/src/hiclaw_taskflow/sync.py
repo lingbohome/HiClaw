@@ -77,15 +77,34 @@ def push_task(task_id: str, workspace: Path | None = None) -> dict:
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode == 0:
+        if result.returncode != 0:
+            return {
+                "ok": False,
+                "synced": False,
+                "error": result.stderr.strip() or f"mc exit code {result.returncode}",
+            }
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "synced": False, "error": "mc mirror timed out"}
+    except Exception as exc:
+        return {"ok": False, "synced": False, "error": str(exc)}
+
+    # Verify: mc mirror exit 0 doesn't guarantee meta.json actually landed.
+    # Explicit mc stat on the remote file to confirm the push was real.
+    meta_remote = f"{remote_path}meta.json"
+    try:
+        verify = subprocess.run(
+            ["mc", "stat", meta_remote],
+            capture_output=True, text=True, timeout=15,
+        )
+        if verify.returncode == 0:
             return {"ok": True, "synced": True}
         return {
             "ok": False,
             "synced": False,
-            "error": result.stderr.strip() or f"mc exit code {result.returncode}",
+            "error": f"push succeeded but mc stat {meta_remote} failed: {verify.stderr.strip()}",
         }
     except subprocess.TimeoutExpired:
-        return {"ok": False, "synced": False, "error": "mc mirror timed out"}
+        return {"ok": False, "synced": False, "error": "mc stat verification timed out"}
     except Exception as exc:
         return {"ok": False, "synced": False, "error": str(exc)}
 
