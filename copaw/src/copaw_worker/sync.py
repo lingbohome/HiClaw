@@ -861,7 +861,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
                     "--exclude", "base/**",
                     "--exclude", "meta.json",
                     "--exclude", "result.md",
-                    "--exclude", "node_modules/**",
+                    "--exclude", "*/node_modules/**",
                     check=False,
                 )
         except Exception:

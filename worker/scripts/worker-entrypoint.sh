@@ -187,7 +187,7 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
                 --exclude ".last-pull" \
                 --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" \
                 --exclude "SOUL.md" --exclude "AGENTS.md" --exclude "HEARTBEAT.md" \
-                --exclude "shared/**" 2>&1; then
+                --exclude "shared/**" --exclude "*/node_modules/**" 2>&1; then
                 log "WARNING: Local->Remote sync failed"
             fi
             # Per-file push for agent-self-modifiable files: only when locally
