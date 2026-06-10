@@ -1204,7 +1204,7 @@ if [ "${HICLAW_RUNTIME}" = "aliyun" ]; then
                     --exclude ".openclaw/**" --exclude ".cache/**" --exclude ".npm/**" \
                     --exclude ".local/**" --exclude ".mc/**" 2>/dev/null || true
             fi
-            sleep 10
+            sleep 60
         done
     ) &
     log "Local→OSS sync started (PID: $!)"
@@ -1240,7 +1240,7 @@ if [ "${HICLAW_RUNTIME}" = "k8s" ]; then
                     --exclude ".openclaw/**" --exclude ".cache/**" --exclude ".npm/**" \
                     --exclude ".local/**" --exclude ".mc/**" 2>/dev/null || true
             fi
-            sleep 10
+            sleep 60
         done
     ) &
     log "Local→MinIO sync started (PID: $!)"
