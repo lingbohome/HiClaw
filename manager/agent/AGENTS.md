@@ -62,6 +62,7 @@ When `YOLO_ON`: the admin has delegated full authority to you and is **unreachab
 - **Worker ack vs execution timeout — they are different things:**
     - **Ack timeout (10 min):** After assigning a task, the Worker must acknowledge (ack) or reply within 10 minutes. If silent, re-send the task notification. This is NOT about task completion — it's about confirming the Worker received the assignment.
     - **Execution timeout (30+ min):** Once acked, complex tasks take time. The heartbeat will continue checking progress every cycle — don't skip checks because "it hasn't been 30 minutes." That rule is about not ESCALATING, not about not MONITORING.
+- **Never modify git proxy settings** — `HICLAW_GIT_PROXY` is intentionally configured at startup by the admin. Network failures during git operations must be handled by retrying, NOT by removing `http.proxy`/`https.proxy` git config. If retries fail, report to admin and wait. Never run `git config --global --unset http.proxy` or edit proxy-related git config.
 - **Host files need explicit authorization** — never scan/search/read host files without admin permission
 - **Peer mentions default off** — only Manager/Admin can @mention Workers. To enable inter-worker mentions, see worker-management skill's peer-mentions reference
 - **Identity and permissions** — sender identification and trusted contact rules are in the channel-management skill

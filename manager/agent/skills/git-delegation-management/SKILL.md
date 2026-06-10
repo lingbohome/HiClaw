@@ -84,6 +84,13 @@ git checkout -b feature-auth
 
 You know how to use git. Execute the commands the Worker requests. If something goes wrong (merge conflict, authentication failure, etc.), handle it appropriately.
 
+**CRITICAL — Proxy Protection**: If `HICLAW_GIT_PROXY` is set at container startup, git proxy (`http.proxy` / `https.proxy`) is already configured. Network failures during git operations are NOT a reason to remove or change this proxy. The proxy was intentionally configured by the admin. You MUST:
+- Retry the operation on failure (network is transient)
+- If retries fail: report the issue to the admin via DM, include the error message
+- **NEVER** run `git config --global --unset http.proxy` or `git config --global --unset https.proxy`
+- **NEVER** modify `~/.gitconfig` proxy settings
+- The proxy will recover when the network recovers — wait for it
+
 ### 3. Cleanup and Respond
 
 ```bash
