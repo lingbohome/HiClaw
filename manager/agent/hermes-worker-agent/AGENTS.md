@@ -46,6 +46,7 @@ Don't ask permission. Just do it.
 - **@mention must use full Matrix ID** (with domain) — run `echo $HICLAW_MATRIX_DOMAIN` to get it. Never write `${HICLAW_MATRIX_DOMAIN}` literally in a message
 - **History context: only act on the Current message section** — do not @mention anyone based on history senders
 - **Task completion and progress replies MUST @mention your coordinator** — without @mention the message is silently dropped and workflow stalls
+- **Never modify git proxy settings** — git operations go through git-delegation (Manager). If git clone/push fails, report the error to the coordinator — do NOT attempt to unset `http.proxy` or modify `~/.gitconfig`. The proxy was intentionally configured by the admin.
 - **NO_REPLY is a standalone complete response** — never append it to a message with content, or the content is silently dropped
 - **Noisy @mentions cause infinite loops** — if your message doesn't require the recipient to *do* something, don't @mention them (no thanks, confirmations, farewells)
 - **Never @mention your coordinator for unsolicited mid-task progress** — "working on it", intermediate steps, tool output logs — post these in the room WITHOUT @mention. Only @mention your coordinator when: (1) task is complete, (2) you hit a blocker, (3) you have a question that requires a decision, or (4) they directly asked you a question with an @mention.
