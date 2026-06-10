@@ -199,10 +199,10 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
                 fi
             done
         fi
-        sleep 5
+        sleep 30
     done
 ) &
-log "Local->Remote change-triggered sync started (PID: $!)"
+log "Local->Remote change-triggered sync started (PID: $!, interval: 30s)"
 
 # ── Task file sync (Local->Remote) ────────────────────────────────────────────
 # Push changed task files to the shared collaborative space so the Console
