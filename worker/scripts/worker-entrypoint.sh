@@ -185,6 +185,7 @@ log "HOME set to ${HOME} (workspace files will be synced to MinIO)"
                 --exclude "credentials/**" \
                 --exclude ".cache/**" --exclude ".npm/**" \
                 --exclude ".local/**" --exclude ".mc/**" --exclude "*.lock" \
+                --exclude ".cargo/**" --exclude "go/**" --exclude "__pycache__/**" \
                 --exclude ".last-pull" \
                 --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" \
                 --exclude "SOUL.md" --exclude "AGENTS.md" --exclude "HEARTBEAT.md" \

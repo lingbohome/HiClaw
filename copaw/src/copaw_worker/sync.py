@@ -769,6 +769,11 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
         "custom_channels",
         "active_skills",
         "__pycache__",
+        # Project dependencies — never push to MinIO
+        "node_modules",
+        # Language ecosystem caches — never push
+        ".cargo",
+        "go",
     }
     # File extensions to skip (transient runtime files)
     _EXCLUDE_EXTENSIONS = {".lock"}
