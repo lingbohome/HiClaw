@@ -418,7 +418,9 @@ class FileSync:
         logger.info("mirror_all: primary mirror remote=%s local=%s", remote, local)
         try:
             _mc("mirror", remote, local, "--overwrite",
-                 "--exclude", "credentials/**", check=True)
+                 "--exclude", "credentials/**",
+                 "--exclude", "*/node_modules/**",
+                 "--exclude", "*/.cache/**", "--exclude", "*/.npm/**", check=True)
             logger.info("mirror_all: full mirror completed from %s", remote)
         except subprocess.CalledProcessError as exc:
             logger.warning(

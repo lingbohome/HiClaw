@@ -231,7 +231,9 @@ class FileSync:
         local = str(self.local_dir) + "/"
         try:
             _mc("mirror", remote, local, "--overwrite",
-                 "--exclude", "credentials/**", check=True)
+                 "--exclude", "credentials/**",
+                 "--exclude", "*/node_modules/**",
+                 "--exclude", "*/.cache/**", "--exclude", "*/.npm/**", check=True)
             logger.info("mirror_all: full mirror completed from %s", remote)
         except subprocess.CalledProcessError as exc:
             logger.warning("mirror_all: mc mirror failed: %s", exc.stderr)

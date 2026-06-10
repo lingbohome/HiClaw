@@ -53,7 +53,8 @@ mkdir -p "${WORKSPACE}" "${HICLAW_ROOT}/shared"
 log "Pulling Worker config from centralized storage..."
 ensure_mc_credentials 2>/dev/null || true
 mc mirror "${HICLAW_STORAGE_PREFIX}/agents/${WORKER_NAME}/" "${WORKSPACE}/" --overwrite \
-    --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" --exclude "credentials/**"
+    --exclude ".openclaw/matrix/**" --exclude ".openclaw/canvas/**" --exclude "credentials/**" \
+    --exclude "*/node_modules/**" --exclude "*/.cache/**" --exclude "*/.npm/**"
 mc mirror "${HICLAW_STORAGE_PREFIX}/shared/" "${HICLAW_ROOT}/shared/" --overwrite \
     --exclude "*/node_modules/**" 2>/dev/null || true
 
