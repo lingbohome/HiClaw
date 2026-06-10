@@ -214,7 +214,7 @@ log "Local->Remote change-triggered sync started (PID: $!)"
 # the Worker).  Large dependency trees are excluded to keep the mirror fast.
 (
         while true; do
-            sleep 15
+            sleep 120
             # Only push tasks this Worker is actively editing (modified in the
             # last 3 minutes).  This prevents idle Workers from pushing stale
             # copies of another Worker's active task files back to MinIO.
@@ -232,7 +232,7 @@ log "Local->Remote change-triggered sync started (PID: $!)"
             done
         done
 ) &
-log "Task file sync started (PID: $!, interval: 15s)"
+log "Task file sync started (PID: $!, interval: 120s)"
 
 # Remote -> Local: fallback pull of Manager-managed files (safety net, every 5m)
 # Normal operation relies on on-demand pulls via file-sync skill when Manager @mentions.

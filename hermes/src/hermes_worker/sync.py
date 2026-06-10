@@ -606,7 +606,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
     # ── Task file sync (Local->MinIO) ─────────────────────────────────
     # Push changed task files to the collaborative shared space so the
     # Console sees Worker progress without waiting for hiclaw-taskflow --sync.
-    # Runs as part of the push loop (every ~5s) but mirrors a separate path.
+    # Runs as part of the push loop (every ~120s) but mirrors a separate path.
     task_dir = local_dir / "shared" / "tasks"
     if task_dir.exists():
         try:
@@ -649,7 +649,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
     return pushed
 
 
-async def push_loop(sync: FileSync, check_interval: int = 5) -> None:
+async def push_loop(sync: FileSync, check_interval: int = 120) -> None:
     """Background task: push local changes to MinIO every ``check_interval`` seconds."""
     last_push_time: float = time.time()
 

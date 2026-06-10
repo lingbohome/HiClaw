@@ -878,7 +878,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
 
 async def push_loop(
     sync: FileSync,
-    check_interval: int = 5,
+    check_interval: int = 120,
     health: HealthStateProtocol | None = None,
 ) -> None:
     """Background task: push local changes to MinIO every `check_interval` seconds.
