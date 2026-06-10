@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 
@@ -12,15 +14,26 @@ import (
 
 // --- Port Exposure ---
 
+// workerNameHash returns a short hex digest of the worker name, suitable for
+// use in K8s labels (which have a 63-character name limit).
+func workerNameHash(name string) string {
+	h := sha256.Sum256([]byte(name))
+	return hex.EncodeToString(h[:4]) // 8 hex chars
+}
+
 // DomainForExpose returns the domain name for a worker's exposed port.
+// Uses a short hash of the worker name to keep the domain (and resulting
+// Higress label higress.io/domain_<domain>) within K8s' 63-char limit.
+//
 // The domain template is configurable via HICLAW_EXPOSE_DOMAIN_TEMPLATE.
-// Default: worker-%s-%d-preview.cloud.hropenai.cn
+// The template receives two args: (hash, port).
+// Default: w-%s-%d-preview.cloud.hropenai.cn
 func DomainForExpose(workerName string, port int) string {
 	tmpl := os.Getenv("HICLAW_EXPOSE_DOMAIN_TEMPLATE")
 	if tmpl == "" {
-		tmpl = "worker-%s-%d-preview.cloud.hropenai.cn"
+		tmpl = "w-%s-%d-preview.cloud.hropenai.cn"
 	}
-	return fmt.Sprintf(tmpl, workerName, port)
+	return fmt.Sprintf(tmpl, workerNameHash(workerName), port)
 }
 
 // ContainerDNSName returns the FQDN for a worker container that Higress can resolve.
