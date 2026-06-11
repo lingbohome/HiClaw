@@ -40,7 +40,7 @@ Write `meta.json`:
   "room_id": "<project-room-id>",
   "status": "assigned",
   "depends_on": [],
-  "assigned_at": "<ISO-8601>"
+  "assigned_at": "${NOW}"  // $(date -u '+%Y-%m-%dT%H:%M:%SZ') — UTC
 }
 ```
 

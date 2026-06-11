@@ -12,10 +12,12 @@ For recurring/scheduled tasks that repeat on a cron schedule with no natural end
 
 3. Add to state.json:
    ```bash
+   # Compute next-scheduled-at in UTC — NEVER let the LLM guess the timezone.
+   NEXT_SCHED=$(date -u -d "+30 minutes" '+%Y-%m-%dT%H:%M:%SZ')
    bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
      --action add-infinite --task-id {task-id} --title "{title}" \
      --assigned-to {worker} --room-id {room-id} \
-     --schedule "{cron}" --timezone "{tz}" --next-scheduled-at "{ISO-8601}"
+     --schedule "{cron}" --timezone "{tz}" --next-scheduled-at "${NEXT_SCHED}"
    ```
 
 ## Triggering execution
@@ -36,8 +38,11 @@ Before sending, use `hiclaw get workers -o json` for `roomID` and `hiclaw get ma
 When a Worker reports `executed`, **only** update state.json:
 
 ```bash
+# Compute next-scheduled-at in UTC from the task's cron schedule.
+# Example: if the task runs every 30 minutes, use "+30 minutes".
+NEXT_SCHED=$(date -u -d "+30 minutes" '+%Y-%m-%dT%H:%M:%SZ')
 bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
-  --action executed --task-id {task-id} --next-scheduled-at "{new-ISO-8601}"
+  --action executed --task-id {task-id} --next-scheduled-at "${NEXT_SCHED}"
 ```
 
 **CRITICAL: Do NOT @mention the Worker after recording execution.** "Recording completion" and "triggering next execution" are completely independent. Recording happens when Worker reports back. Triggering happens later during heartbeat when the schedule says it's time. If you @mention the Worker here, you create a rapid-fire loop: Worker executes → reports → you trigger → Worker executes → ... burning tokens continuously.

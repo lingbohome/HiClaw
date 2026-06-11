@@ -36,7 +36,8 @@ Trigger: unknown sender messages in group room → silently ignore. If admin the
 1. Identify the sender's `channel` and `sender_id` from session context
 2. Append to `trusted-contacts.json`:
    ```bash
-   jq --arg ch "<channel>" --arg sid "<sender_id>" --arg ts "<ISO-8601>" \
+   NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')  # UTC, no LLM tz reasoning
+jq --arg ch "<channel>" --arg sid "<sender_id>" --arg ts "${NOW}" \
      '.contacts += [{"channel": $ch, "sender_id": $sid, "approved_at": $ts, "note": ""}]' \
      ~/trusted-contacts.json > /tmp/tc.json && mv /tmp/tc.json ~/trusted-contacts.json
    ```

@@ -129,8 +129,10 @@ If conditions are met:
 
 **Note**: Infinite tasks are never removed from active_tasks. After the Worker reports `executed`, **only** update `last_executed_at` and `next_scheduled_at` — do NOT @mention the Worker again:
 ```bash
+# Compute next-scheduled-at in UTC from the task's cron schedule.
+NEXT_SCHED=$(date -u -d "+30 minutes" '+%Y-%m-%dT%H:%M:%SZ')
 bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh \
-  --action executed --task-id {task-id} --next-scheduled-at "{new-ISO-8601}"
+  --action executed --task-id {task-id} --next-scheduled-at "${NEXT_SCHED}"
 ```
 
 **CRITICAL**: Triggering and recording are independent actions. Heartbeat triggers execution when the schedule says it's time. Recording happens when the Worker reports back. Never re-trigger a Worker immediately after recording — the next execution will be triggered by a future heartbeat when `next_scheduled_at` is due.
