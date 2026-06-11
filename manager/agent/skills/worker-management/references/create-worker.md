@@ -294,7 +294,7 @@ Append a one-line entry to `~/pending-workers.json` (create the file if missing)
 ```bash
 ROOM_ID=$(hiclaw get workers -o json | jq -r --arg n "<NAME>" '.[] | select(.name==$n) | .roomID // empty')
 mkdir -p ~/ && touch ~/pending-workers.json
-jq -n --arg name "<NAME>" --arg room "${ROOM_ID}" --arg ts "$(date -Iseconds)" \
+jq -n --arg name "<NAME>" --arg room "${ROOM_ID}" --arg ts "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
   '{name:$name, room_id:$room, queued_at:$ts}' \
   >> ~/pending-workers.json
 ```

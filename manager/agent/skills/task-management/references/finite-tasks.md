@@ -13,6 +13,12 @@
 2. Create task directory and files:
    ```bash
    mkdir -p /root/hiclaw-fs/shared/tasks/{task-id}
+
+   # Generate UTC timestamp for meta.json — MUST use date -u (UTC).
+   # The container may have TZ=Asia/Shanghai; date without -u mixes
+   # the system clock (UTC) with the container timezone offset (+08:00),
+   # producing broken timestamps like 09:27+08:00 instead of 09:27Z.
+   NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
    ```
 
    **Write `meta.json`** — use this EXACT template (replace `{...}` placeholders):
@@ -24,7 +30,7 @@
      "status": "assigned",
      "assigned_to": "{worker-name}",
      "room_id": "{room-id-from-step-4a}",
-     "created_at": "{ISO-8601-now}"
+     "created_at": "${NOW}"
    }
    ```
    **CRITICAL**: Every field is mandatory. `room_id` is required by Workers for
