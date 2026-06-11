@@ -97,9 +97,11 @@ You know how to use git. Execute the commands the Worker requests. If something 
 # Remove processing marker
 bash /opt/hiclaw/agent/skills/task-coordination/scripts/remove-processing-marker.sh "$task_id"
 
-# Sync to MinIO
+# Sync to MinIO — MUST exclude large dirs + protocol files
 mc mirror "/root/hiclaw-fs/shared/tasks/${task_id}/" \
-  "${HICLAW_STORAGE_PREFIX}/shared/tasks/${task_id}/" --overwrite
+  "${HICLAW_STORAGE_PREFIX}/shared/tasks/${task_id}/" --overwrite \
+  --exclude "spec.md" --exclude "base/" \
+  --exclude "shared/**" --exclude "**/node_modules/**"
 ```
 
 **On success** — send to Worker:

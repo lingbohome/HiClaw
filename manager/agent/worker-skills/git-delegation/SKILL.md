@@ -149,7 +149,9 @@ cat src/main.py
 
 # When ready to commit, sync to MinIO first
 mc mirror "/root/hiclaw-fs/shared/tasks/task-20260225/" \
-  "${HICLAW_STORAGE_PREFIX}/shared/tasks/task-20260225/" --overwrite
+  "${HICLAW_STORAGE_PREFIX}/shared/tasks/task-20260225/" --overwrite \
+  --exclude "spec.md" --exclude "base/" \
+  --exclude "shared/**" --exclude "**/node_modules/**"
 ```
 
 ### 5. Commit and Push
