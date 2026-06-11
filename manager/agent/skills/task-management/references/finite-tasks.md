@@ -10,19 +10,13 @@
 ## Assigning a finite task
 
 1. Generate task ID: `task-YYYYMMDD-HHMMSS`
-2. Create task directory and files:
+2. Create task directory and write meta.json:
    ```bash
    mkdir -p /root/hiclaw-fs/shared/tasks/{task-id}
 
-   # Generate UTC timestamp for meta.json — MUST use date -u (UTC).
-   # The container may have TZ=Asia/Shanghai; date without -u mixes
-   # the system clock (UTC) with the container timezone offset (+08:00),
-   # producing broken timestamps like 09:27+08:00 instead of 09:27Z.
-   NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-   ```
-
-   **Write `meta.json`** — use this EXACT template (replace `{...}` placeholders):
-   ```json
+   # Use an unquoted heredoc so $(date -u) is expanded by the shell.
+   # NEVER let the LLM guess the timezone — date -u + Z suffix is always UTC.
+   cat > /root/hiclaw-fs/shared/tasks/{task-id}/meta.json << EOF
    {
      "task_id": "{task-id}",
      "title": "{task title}",
@@ -30,8 +24,9 @@
      "status": "assigned",
      "assigned_to": "{worker-name}",
      "room_id": "{room-id-from-step-4a}",
-     "created_at": "${NOW}"
+     "created_at": "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
    }
+   EOF
    ```
    **CRITICAL**: Every field is mandatory. `room_id` is required by Workers for
    identity verification and by Solforge for Matrix room message access. If the
