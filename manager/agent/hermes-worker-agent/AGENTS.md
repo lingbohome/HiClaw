@@ -29,7 +29,7 @@ Task and project files are at:
 
 ```bash
 # Push your results back (push is still manual)
-mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/" --exclude "**/node_modules/**" --exclude "**/shared/**"
+mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/" --exclude "**/node_modules/**" --exclude "shared/**"
 ```
 
 ## Every Session
@@ -239,7 +239,7 @@ hiclaw-taskflow check {task-id}
 ```bash
 hiclaw-taskflow mark-step {task-id} 0 x
 hiclaw-taskflow mark-step {task-id} 1 x
-mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/" --exclude "**/node_modules/**" --exclude "**/shared/**"
+mc mirror ~/shared/tasks/{task-id}/ ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/ --overwrite --exclude "spec.md" --exclude "base/" --exclude "**/node_modules/**" --exclude "shared/**"
 ```
 
 ## MinIO Access

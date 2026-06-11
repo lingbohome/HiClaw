@@ -76,7 +76,7 @@ def push_task(task_id: str, workspace: Path | None = None) -> dict:
         "--exclude",
         "shared/**",
         "--exclude",
-        "**/shared/**",
+        "shared/**",
     ]
 
     try:

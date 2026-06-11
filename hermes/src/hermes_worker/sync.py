@@ -244,7 +244,7 @@ class FileSync:
         try:
             _mc("mirror", shared_remote, shared_local, "--overwrite",
             "--exclude", "**/node_modules/**",
-            "--exclude", "**/shared/**", check=True)
+            "--exclude", "shared/**", check=True)
             logger.info(
                 "mirror_all: shared/ mirror completed from %s", shared_remote
             )
@@ -420,7 +420,7 @@ class FileSync:
                 "mirror",
                 shared_remote,
             "--exclude", "**/node_modules/**",
-            "--exclude", "**/shared/**",
+            "--exclude", "shared/**",
                 str(shared_local) + "/",
                 check=False,
             )
@@ -642,7 +642,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
                     "--exclude", "meta.json",
                     "--exclude", "result.md",
                     "--exclude", "**/node_modules/**",
-                    "--exclude", "**/shared/**",
+                    "--exclude", "shared/**",
                     check=False,
                 )
         except Exception:
