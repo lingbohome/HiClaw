@@ -43,8 +43,14 @@ Iterate over entries in `active_tasks` with `"type": "finite"`:
   ```bash
   mc cat ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/meta.json | jq -r '.status'
   ```
-  - `"submitted"` — **Worker is done. Do NOT ping them.** The task is waiting for admin review. Skip to Step 7 and mention this task in the admin report as "awaiting review."
-  - `"completed"` — task is already finished but not yet removed from state.json. Run `manage-state.sh --action complete` and skip pinging.
+  - `"submitted"` — Worker has submitted, but the human admin has NOT yet accepted.
+    **Do NOT ping the Worker. Do NOT remove from active_tasks.**
+    The task MUST stay in active_tasks so every heartbeat reports it to admin
+    until the human explicitly accepts it. Skip to Step 7 and mention this
+    task as "awaiting human review."
+  - `"completed"` — human accepted AND Manager finalized. Only THIS status
+    means the task is truly done. Run `manage-state.sh --action complete`
+    (this removes it from active_tasks and updates state.json).
   - `"in_progress"` or `"assigned"` — Worker is still working. Continue below.
 - Determine the target room: use `project_room_id` if available, otherwise use `room_id`
 - **Before sending any message**, ensure the Worker's container is running:
