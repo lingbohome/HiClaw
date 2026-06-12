@@ -99,20 +99,22 @@ if [ -f "/root/hiclaw-fs/shared/tasks/{task-id}/.processing" ]; then
 fi
 ```
 
-### 2. Prepare Your Request
+### 2. Generate and Send the Request
 
-Write out the git commands you want executed:
+**DO NOT manually construct the message.** Use the script — it automatically
+includes `@manager:<domain>` so you never forget the mention:
 
+```bash
+bash ~/skills/git-delegation/scripts/send-git-request.sh \
+  --task-id {task-id} \
+  --workspace /root/hiclaw-fs/shared/tasks/{task-id}/workspace \
+  --ops "git clone https://github.com/org/repo.git
+cd repo && git checkout -b feature-xyz" \
+  --context "Why you need these operations"
 ```
-@manager:DOMAIN task-20260225 git-request:
-workspace: /root/hiclaw-fs/shared/tasks/task-20260225/workspace
-operations:
-  - git clone https://github.com/higress-group/hiclaw.git
-  - cd hiclaw && git checkout -b feature-xyz
----CONTEXT---
-Starting work on feature XYZ
----END---
-```
+
+The script outputs the EXACT message text. Send that text in the Worker room.
+`@manager` is already included — you do NOT need to add it yourself.
 
 ### 3. Wait for Response
 
