@@ -58,6 +58,13 @@ Iterate over entries in `active_tasks` with `"type": "finite"`:
   - `recreated` — container was missing and has been recreated; **wait 60 seconds** before sending the follow-up message, and flag this anomaly for the admin report (Step 7)
   - `remote` — Worker is remotely deployed, assumed reachable
   - `failed` — could not start/recreate the container; **skip the follow-up message**, flag the anomaly for the admin report (Step 7), and suggest the admin intervene
+- **Read the Worker's last message FIRST** — before sending the status check,
+  look at what the Worker said most recently in the Room. Is there a question
+  you haven't answered? (e.g. "what's the repo URL?", "which branch?",
+  "I need credentials for X") If YES: answer the question FIRST, then do
+  the status check. A template status check that ignores the Worker's actual
+  question is worse than no check at all — it tells the Worker you're not
+  reading their messages.
 - **Use `copaw channels send` via shell** to send a follow-up to that room:
   ```bash
   copaw channels send \
@@ -65,10 +72,19 @@ Iterate over entries in `active_tasks` with `"type": "finite"`:
     --channel matrix \
     --target-user "@{worker}:${HICLAW_MATRIX_DOMAIN}" \
     --target-session "{room_id}" \
-    --text "@{worker}:${HICLAW_MATRIX_DOMAIN} How is your current task {task-id} going? Are you blocked on anything?"
+    --text "@{worker}:${HICLAW_MATRIX_DOMAIN} Status check on task {task-id} — reply with @manager:${HICLAW_MATRIX_DOMAIN} to confirm you received this. What step are you on? Any blockers? Continue working autonomously until your plan.md is complete or you hit a true blocker — do NOT wait for my next check-in."
   ```
-- Determine if the Worker is making normal progress based on their reply
-- If the Worker has not responded (no response for more than one heartbeat cycle), flag the anomaly in the Room and notify the human admin (see Step 7)
+  **Critical:** The Worker MUST @mention you in their reply — Matrix group rooms filter by mention, so you cannot see messages that don't @mention you.
+- Read the Worker's reply. If they @mentioned you (`@manager:{domain}`), you received it — determine if they are making normal progress. If you did NOT receive an @mention within one heartbeat cycle, the Worker may have replied without mentioning you (they are NOT ignoring you, you just cannot see their reply). In that case, do NOT escalate to admin. Simply ping again. Only escalate to admin after **3 consecutive heartbeat cycles** with no @mention reply.
+- If the Worker reports no progress for 2+ consecutive cycles AND hasn't updated plan.md, send a stronger message:
+  ```bash
+  copaw channels send \
+    --agent-id default \
+    --channel matrix \
+    --target-user "@{worker}:${HICLAW_MATRIX_DOMAIN}" \
+    --target-session "{room_id}" \
+    --text "@{worker}:${HICLAW_MATRIX_DOMAIN} I've noticed no progress on {task-id} for the last {N} check-ins. If you're stuck, tell me what's blocking you (reply with @manager:${HICLAW_MATRIX_DOMAIN}). If not stuck, continue through your plan.md steps — you do NOT need my permission to proceed."
+  ```
 - If the Worker has replied that the task is complete but meta.json has not been updated, proactively update meta.json (status → completed, fill in completed_at), and remove the entry from `active_tasks`:
   ```bash
   bash /opt/hiclaw/agent/skills/task-management/scripts/manage-state.sh --action complete --task-id {task-id}
