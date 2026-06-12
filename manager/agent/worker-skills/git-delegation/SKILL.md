@@ -101,12 +101,13 @@ fi
 
 ### 2. Generate and Send the Request
 
-**DO NOT manually construct the message.** Use the script — it auto-detects
-the task ID and workspace from your current directory, and always includes
-`@manager:<domain>`:
+**DO NOT manually construct the message.** Use the script — it automatically
+includes `@manager:<domain>` so you never forget the mention:
 
 ```bash
 bash ~/skills/git-delegation/scripts/send-git-request.sh \
+  --task-id {task-id} \
+  --workspace /root/hiclaw-fs/shared/tasks/{task-id}/workspace \
   --ops "git clone https://github.com/org/repo.git
 cd repo && git checkout -b feature-xyz" \
   --context "Why you need these operations"

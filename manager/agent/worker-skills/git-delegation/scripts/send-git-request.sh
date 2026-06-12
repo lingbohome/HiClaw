@@ -17,10 +17,10 @@
 
 set -euo pipefail
 
-OPS=""
-CONTEXT=""
 TASK_ID=""
 WORKSPACE=""
+OPS=""
+CONTEXT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -32,24 +32,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$OPS" ]]; then
-  echo "ERROR: --ops is required" >&2
-  echo "Usage: $0 --ops 'git clone ...' [--context 'why'] [--task-id T] [--workspace W]" >&2
+if [[ -z "$TASK_ID" || -z "$WORKSPACE" || -z "$OPS" ]]; then
+  echo "ERROR: --task-id, --workspace, and --ops are required" >&2
+  echo "Usage: $0 --task-id T --workspace W --ops O [--context C]" >&2
   exit 1
-fi
-
-# Auto-detect task-id from PWD (Worker always works inside task directory)
-if [[ -z "$TASK_ID" ]]; then
-  TASK_ID=$(pwd | grep -oP 'task-[0-9]+-[0-9]+' | head -1 || true)
-fi
-if [[ -z "$TASK_ID" ]]; then
-  echo "ERROR: could not detect task-id from PWD; pass --task-id explicitly" >&2
-  exit 1
-fi
-
-# Auto-detect workspace path from task-id
-if [[ -z "$WORKSPACE" ]]; then
-  WORKSPACE="/root/hiclaw-fs/shared/tasks/${TASK_ID}/workspace"
 fi
 
 DOMAIN="${HICLAW_MATRIX_DOMAIN:-matrix-local.hiclaw.io}"
