@@ -35,9 +35,9 @@ FROM ${HIGRESS_REGISTRY}/higress/python:3.11-slim
 ARG APT_MIRROR=
 ARG PIP_INDEX_URL=https://pypi.org/simple/
 ARG NPM_REGISTRY=https://registry.npmjs.org/
-# v2026.4.16 is the "Hermes Agent v0.10.0 (2026.4.16)" calendar tag
-# (commit 1dd6b5d5 on the upstream repo).
-ARG HERMES_GIT_REF=v2026.4.16
+# v2026.6.5 is the "Hermes Agent v0.16.0 — The Surface Release" (June 2026).
+# Includes async subagent delegation (delegate_task_async).
+ARG HERMES_GIT_REF=v2026.6.5
 ARG HERMES_REPO_URL=https://github.com/NousResearch/hermes-agent.git
 
 # python:3.11-slim is Debian-based, uses /etc/apt/sources.list.d/debian.sources
