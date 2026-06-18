@@ -1,10 +1,6 @@
 name: Build Hermes Worker Only
 
 on:
-  push:
-    paths:
-      - "hermes/**"
-      - ".github/workflows/build-hermes-worker.yml"
   workflow_dispatch:
     inputs:
       version:
