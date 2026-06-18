@@ -95,6 +95,14 @@ spec:
                         enum: [http, sse]
                         default: http
                         description: Transport protocol (http=Streamable HTTP, sse=Server-Sent Events).
+                heartbeat:
+                  type: object
+                  description: Configures periodic agent wake-up for standalone workers. When enabled, the controller injects heartbeat settings into the generated openclaw.json so the Hermes agent autonomously wakes up on the configured schedule. Nil means no heartbeat (reactive-only).
+                  properties:
+                    enabled:
+                      type: boolean
+                    every:
+                      type: string
                 package:
                   type: string
                   description: "Package URI: file://, http(s)://, nacos://, or packages/{name}.zip"
