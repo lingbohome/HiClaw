@@ -429,43 +429,42 @@ def _bridge_mcporter_config(hermes_home: Path) -> None:
 
 _HEARTBEAT_CRON_JOB_NAME = "hiclaw-heartbeat"
 _HEARTBEAT_CRON_PROMPT = """\
-System: You are the coordinator agent for a HiClaw worker running on a \
-carbon-silicon trading platform. Your job is to autonomously manage the \
-full task lifecycle.
+WAKE UP. Read SOUL.md and AGENTS.md first. You are the COORDINATOR for \
+a carbon-silicon trading platform. Execute this checklist EVERY wake-up.
 
-Read SOUL.md for your identity and AGENTS.md for behavior rules before \
-taking any action.
+STEP 0: skill_load("mcporter") to register MCP tools as native tools.
+This is NOT skill_view. After loading, call trade.* tools directly:
+  trade.list_open_tasks(...) — NOT terminal("mcporter call trade.xxx")
+  trade.submit_bid(...) / trade.report_progress(...) / trade.deliver(...)
 
-Each wake-up, execute this checklist in order:
+STEP 1: CROSS-REFERENCE (dedup)
+Compare list_tasks() with trade.list_my_tasks(status=["in_progress","assigned"]).
+- Platform in_progress + no matching sub-agent -> delegate_task_async
+- Workspace has plan.md -> resume from checkpoint
 
-1. CROSS-REFERENCE (dedup):
-   Compare your internal list_tasks() with trade.list_my_tasks.
-   - Platform says in_progress + no matching sub-agent -> create one
-   - Workspace has plan.md -> resume from checkpoint
+STEP 2: MONITOR active sub-agents
+list_tasks() -> check each status -> trade.report_progress(taskId, phase, progress).
+Sub-agent done? collect_task(taskId) -> trade.deliver(taskId, agentId, previewUrl,
+artifacts, resultSummary). Stuck >5min no output? cancel -> retry (max 2).
 
-2. MONITOR active sub-agents:
-   list_tasks() -> check each sub-agent status
-   -> trade.report_progress(taskId, phase, progress)
-   -> sub-agent done? collect_task(taskId) -> trade.deliver(...)
+STEP 3: ACCEPTANCE FEEDBACK (highest priority)
+trade.list_my_tasks(status=["delivered"]) -> trade.get_task_status(taskId).
+COMPLETED: clean workspace. REVISION_REQUESTED: read revisionReason -> \
+delegate_task_async to fix -> trade.deliver(..., revision=true).
 
-3. ACCEPTANCE FEEDBACK (urgent):
-   trade.list_my_tasks(status=delivered) -> trade.get_task_status
-   -> COMPLETED: clean up workspace
-   -> REVISION_REQUESTED: read revisionReason -> delegate_task_async to fix
+STEP 4: SCAN new tasks
+trade.list_open_tasks(skills=["react","nodejs","html-css"]) ->
+hasMyBid=false: analyze -> trade.submit_bid(taskId, agentId, priceCny,
+planSummary, estimatedHours). hasMyBid=true + ACCEPTED: delegate_task_async.
 
-4. SCAN for new tasks:
-   trade.list_open_tasks(skills=matching)
-   -> hasMyBid=false: analyze -> trade.submit_bid(...)
-   -> hasMyBid=true + ACCEPTED: delegate_task_async to execute
-
-CRITICAL RULES:
-- You are a COORDINATOR — NEVER write code yourself. Always delegate via \
-delegate_task_async.
-- Sub-agent goal MUST start with [taskId] for matching.
-- Sub-agent workspace_dir = shared/tasks/<taskId>/
-- Max 3 concurrent sub-agents.
-- Always use trade.* MCP tools (not raw curl/http).
-- Before long terminal commands, trade.report_progress first.
+CRITICAL RULES (violations = failure):
+1. COORDINATOR only. NEVER write code, mkdir, npm, or vite. ALWAYS delegate_task_async.
+2. After skill_load("mcporter"), trade.* tools are native functions. Call directly.
+   NEVER use terminal("mcporter call ..."). NEVER use curl.
+3. Sub-agent goal MUST start with [taskId]. workspace_dir="shared/tasks/<taskId>/".
+   Max 3 concurrent sub-agents.
+4. trade.report_progress BEFORE any long terminal command.
+5. If blocked, report stalled and wait for next wake-up. Do not spin.
 """
 
 
@@ -474,22 +473,39 @@ def _bridge_heartbeat_to_cron(
     hermes_home: Path,
     soul: Optional[str] = None,
 ) -> None:
-    """Translate openclaw.json heartbeat into a Hermes cron job.
+    """Ensure a heartbeat cron job exists with an up-to-date prompt.
 
-    Creates or updates a recurring cron job so the agent wakes up
-    autonomously on the configured schedule.  Idempotent — if a matching
-    job already exists with the same schedule, it is left untouched.
+    Two strategies, in order:
+
+    1. If openclaw.json declares ``agents.defaults.heartbeat.enabled``,
+       create or update a Hermes cron job with that interval.  This is the
+       canonical path once the controller injects heartbeat (D48).
+
+    2. **Fallback (P5 workaround)**: If openclaw.json does NOT declare
+       heartbeat (controller image predates D48), scan the existing cron
+       jobs for any that match our schedule pattern.  When found, update
+       their prompt to the current coordinator checklist.  This keeps
+       manually-created cron jobs current without controller support.
     """
     hb = (
         openclaw_cfg.get("agents", {})
         .get("defaults", {})
         .get("heartbeat", {})
     )
-    if not hb or not hb.get("enabled"):
-        return
 
-    every = hb.get("every", "5m")
-    schedule_str = f"every {every}"
+    if hb and hb.get("enabled"):
+        every = hb.get("every", "5m")
+        schedule_str = f"every {every}"
+        should_create = True
+    else:
+        # Fallback: no heartbeat in openclaw.json — look for existing
+        # cron jobs with our schedule pattern and update their prompts.
+        logger.info(
+            "bridge: openclaw.json has no heartbeat — falling back to "
+            "existing cron job scan"
+        )
+        schedule_str = None
+        should_create = False
 
     try:
         from cron.jobs import load_jobs, save_jobs, create_job, update_job
@@ -499,10 +515,9 @@ def _bridge_heartbeat_to_cron(
         )
         return
 
-    # Customize prompt with SOUL.md prefix if available
+    # Build prompt (with SOUL.md summary if available)
     prompt = _HEARTBEAT_CRON_PROMPT
     if soul:
-        # Prepend SOUL.md identity but keep the checklist
         soul_brief = "\n".join(
             line for line in soul.split("\n")
             if line.strip() and not line.strip().startswith("#")
@@ -516,40 +531,51 @@ def _bridge_heartbeat_to_cron(
 
     jobs = load_jobs()
 
-    # Find existing heartbeat job
+    # ---- find existing heartbeat job ----
     existing = None
     for j in jobs:
         if j.get("name") == _HEARTBEAT_CRON_JOB_NAME:
             existing = j
             break
-        # Also match by schedule pattern for backward compat
-        if j.get("schedule", {}).get("display") == schedule_str and j.get("name", "").startswith("Scan trade"):
+        # Backward compat: match old "Scan trade..." cron jobs
+        if j.get("name", "").startswith("Scan trade"):
             existing = j
             break
+        # Fallback: match any job with an interval schedule in the
+        # 1m–10m range (typical heartbeat intervals).
+        sch = j.get("schedule", {})
+        if sch.get("kind") == "interval" and 1 <= sch.get("minutes", 0) <= 10:
+            if existing is None:
+                existing = j  # first candidate; prefer named match above
 
     if existing:
-        # Update if schedule or prompt changed
-        current_display = existing.get("schedule", {}).get("display", "")
         current_prompt = existing.get("prompt", "")
-        needs_update = (
-            current_display != schedule_str
-            or current_prompt.strip() != prompt.strip()
-        )
-        if needs_update:
+        prompt_changed = current_prompt.strip() != prompt.strip()
+
+        if schedule_str and existing.get("schedule", {}).get("display") != schedule_str:
+            # Schedule also changed — full update
             update_job(existing["id"], {
                 "prompt": prompt,
                 "schedule": schedule_str,
                 "name": _HEARTBEAT_CRON_JOB_NAME,
             })
             logger.info(
-                "bridge: heartbeat cron job updated (schedule=%s)", schedule_str
+                "bridge: heartbeat cron job updated (id=%s schedule=%s)",
+                existing["id"], schedule_str,
+            )
+        elif prompt_changed:
+            # Prompt-only update (fallback path)
+            update_job(existing["id"], {
+                "prompt": prompt,
+                "name": _HEARTBEAT_CRON_JOB_NAME,
+            })
+            logger.info(
+                "bridge: heartbeat cron prompt updated (id=%s, schedule unchanged)",
+                existing["id"],
             )
         else:
-            logger.debug(
-                "bridge: heartbeat cron job already up-to-date (schedule=%s)",
-                schedule_str,
-            )
-    else:
+            logger.debug("bridge: heartbeat cron job already up-to-date (id=%s)", existing["id"])
+    elif should_create and schedule_str:
         job = create_job(
             prompt=prompt,
             schedule=schedule_str,
@@ -558,8 +584,12 @@ def _bridge_heartbeat_to_cron(
         )
         logger.info(
             "bridge: heartbeat cron job created id=%s schedule=%s",
-            job["id"],
-            schedule_str,
+            job["id"], schedule_str,
+        )
+    else:
+        logger.info(
+            "bridge: no heartbeat in openclaw.json and no existing cron job "
+            "found — skipping (controller rebuild needed for full automation)"
         )
 
 def bridge_openclaw_to_hermes(
