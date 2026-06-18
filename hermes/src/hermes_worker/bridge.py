@@ -394,8 +394,173 @@ def _logging_yaml_block() -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Public entrypoint
+# mcporter config bridge
 # ---------------------------------------------------------------------------
+
+def _bridge_mcporter_config(hermes_home: Path) -> None:
+    """Ensure mcporter can find MCP server config regardless of cwd.
+
+    The controller writes ``mcporter-servers.json`` at workspace root, but
+    mcporter looks for ``config/mcporter.json`` relative to ``$HOME`` (the
+    workspace root).  Copy the file so the agent never wastes steps fixing
+    mcporter configuration.
+    """
+    workspace_root = hermes_home.parent
+    servers_json = workspace_root / "mcporter-servers.json"
+    if not servers_json.exists():
+        return
+
+    config_dir = workspace_root / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    target = config_dir / "mcporter.json"
+
+    # Only write if source is newer (idempotent — avoids touching mtime
+    # on every bridge run, which would trigger unnecessary MinIO syncs).
+    if target.exists() and servers_json.stat().st_mtime <= target.stat().st_mtime:
+        return
+
+    target.write_text(servers_json.read_text())
+    logger.info("bridge: mcporter config synced to %s", target)
+
+
+# ---------------------------------------------------------------------------
+# heartbeat → cron bridge
+# ---------------------------------------------------------------------------
+
+_HEARTBEAT_CRON_JOB_NAME = "hiclaw-heartbeat"
+_HEARTBEAT_CRON_PROMPT = """\
+System: You are the coordinator agent for a HiClaw worker running on a \
+carbon-silicon trading platform. Your job is to autonomously manage the \
+full task lifecycle.
+
+Read SOUL.md for your identity and AGENTS.md for behavior rules before \
+taking any action.
+
+Each wake-up, execute this checklist in order:
+
+1. CROSS-REFERENCE (dedup):
+   Compare your internal list_tasks() with trade.list_my_tasks.
+   - Platform says in_progress + no matching sub-agent -> create one
+   - Workspace has plan.md -> resume from checkpoint
+
+2. MONITOR active sub-agents:
+   list_tasks() -> check each sub-agent status
+   -> trade.report_progress(taskId, phase, progress)
+   -> sub-agent done? collect_task(taskId) -> trade.deliver(...)
+
+3. ACCEPTANCE FEEDBACK (urgent):
+   trade.list_my_tasks(status=delivered) -> trade.get_task_status
+   -> COMPLETED: clean up workspace
+   -> REVISION_REQUESTED: read revisionReason -> delegate_task_async to fix
+
+4. SCAN for new tasks:
+   trade.list_open_tasks(skills=matching)
+   -> hasMyBid=false: analyze -> trade.submit_bid(...)
+   -> hasMyBid=true + ACCEPTED: delegate_task_async to execute
+
+CRITICAL RULES:
+- You are a COORDINATOR — NEVER write code yourself. Always delegate via \
+delegate_task_async.
+- Sub-agent goal MUST start with [taskId] for matching.
+- Sub-agent workspace_dir = shared/tasks/<taskId>/
+- Max 3 concurrent sub-agents.
+- Always use trade.* MCP tools (not raw curl/http).
+- Before long terminal commands, trade.report_progress first.
+"""
+
+
+def _bridge_heartbeat_to_cron(
+    openclaw_cfg: Dict[str, Any],
+    hermes_home: Path,
+    soul: Optional[str] = None,
+) -> None:
+    """Translate openclaw.json heartbeat into a Hermes cron job.
+
+    Creates or updates a recurring cron job so the agent wakes up
+    autonomously on the configured schedule.  Idempotent — if a matching
+    job already exists with the same schedule, it is left untouched.
+    """
+    hb = (
+        openclaw_cfg.get("agents", {})
+        .get("defaults", {})
+        .get("heartbeat", {})
+    )
+    if not hb or not hb.get("enabled"):
+        return
+
+    every = hb.get("every", "5m")
+    schedule_str = f"every {every}"
+
+    try:
+        from cron.jobs import load_jobs, save_jobs, create_job, update_job
+    except ImportError:
+        logger.warning(
+            "bridge: cron module not available — skipping heartbeat cron job"
+        )
+        return
+
+    # Customize prompt with SOUL.md prefix if available
+    prompt = _HEARTBEAT_CRON_PROMPT
+    if soul:
+        # Prepend SOUL.md identity but keep the checklist
+        soul_brief = "\n".join(
+            line for line in soul.split("\n")
+            if line.strip() and not line.strip().startswith("#")
+        )[:1500]
+        prompt = (
+            "Read SOUL.md for your full identity. Summary:\n"
+            + soul_brief
+            + "\n\n---\n\n"
+            + _HEARTBEAT_CRON_PROMPT
+        )
+
+    jobs = load_jobs()
+
+    # Find existing heartbeat job
+    existing = None
+    for j in jobs:
+        if j.get("name") == _HEARTBEAT_CRON_JOB_NAME:
+            existing = j
+            break
+        # Also match by schedule pattern for backward compat
+        if j.get("schedule", {}).get("display") == schedule_str and j.get("name", "").startswith("Scan trade"):
+            existing = j
+            break
+
+    if existing:
+        # Update if schedule or prompt changed
+        current_display = existing.get("schedule", {}).get("display", "")
+        current_prompt = existing.get("prompt", "")
+        needs_update = (
+            current_display != schedule_str
+            or current_prompt.strip() != prompt.strip()
+        )
+        if needs_update:
+            update_job(existing["id"], {
+                "prompt": prompt,
+                "schedule": schedule_str,
+                "name": _HEARTBEAT_CRON_JOB_NAME,
+            })
+            logger.info(
+                "bridge: heartbeat cron job updated (schedule=%s)", schedule_str
+            )
+        else:
+            logger.debug(
+                "bridge: heartbeat cron job already up-to-date (schedule=%s)",
+                schedule_str,
+            )
+    else:
+        job = create_job(
+            prompt=prompt,
+            schedule=schedule_str,
+            name=_HEARTBEAT_CRON_JOB_NAME,
+            deliver="local",
+        )
+        logger.info(
+            "bridge: heartbeat cron job created id=%s schedule=%s",
+            job["id"],
+            schedule_str,
+        )
 
 def bridge_openclaw_to_hermes(
     openclaw_cfg: Dict[str, Any],
@@ -525,6 +690,20 @@ def bridge_openclaw_to_hermes(
         (hermes_home / "SOUL.md").write_text(soul)
     if agents_md is not None:
         (hermes_home / "AGENTS.md").write_text(agents_md)
+
+    # ── mcporter config bridge ──────────────────────────────────────────
+    # mcporter reads from $HOME/config/mcporter.json (cwd-relative).
+    # The controller writes mcporter-servers.json at workspace root.
+    # Bridge copies it to the path mcporter actually reads from so the
+    # agent never wastes steps fixing config.
+    _bridge_mcporter_config(hermes_home)
+
+    # ── heartbeat → cron job bridge ─────────────────────────────────────
+    # openclaw.json agents.defaults.heartbeat is designed for the openclaw
+    # runtime. Hermes uses its own cron system. Bridge translates heartbeat
+    # settings into a Hermes cron job so standalone workers get autonomous
+    # wake-up without manual configuration.
+    _bridge_heartbeat_to_cron(openclaw_cfg, hermes_home, soul)
 
     # Make HERMES_HOME visible to spawned tools (mcporter, hermes CLI helpers).
     os.environ["HERMES_HOME"] = str(hermes_home)
