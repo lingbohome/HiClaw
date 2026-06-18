@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1beta1 "github.com/hiclaw/hiclaw-controller/api/v1beta1"
+	"github.com/hiclaw/hiclaw-controller/internal/agentconfig"
 	"github.com/hiclaw/hiclaw-controller/internal/auth"
 	"github.com/hiclaw/hiclaw-controller/internal/backend"
 	"github.com/hiclaw/hiclaw-controller/internal/metrics"
@@ -306,6 +307,14 @@ func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext 
 	currentHash := containerSpecHash(w)
 	storedHash := w.Annotations["hiclaw.io/container-spec-hash"]
 	specChanged := w.Status.ObservedGeneration > 0 && currentHash != "" && storedHash != "" && currentHash != storedHash
+ 	var heartbeat *agentconfig.HeartbeatConfig
+ 	if w.Spec.Heartbeat != nil && w.Spec.Heartbeat.Enabled {
+ 		heartbeat = &agentconfig.HeartbeatConfig{
+ 			Enabled: true,
+ 			Every:   w.Spec.Heartbeat.Every,
+ 		}
+ 	}
+
 
 	return MemberContext{
 		Name:               w.Name,
@@ -335,6 +344,7 @@ func (r *WorkerReconciler) workerMemberContext(w *v1beta1.Worker) MemberContext 
 		ExistingMatrixUserID: w.Status.MatrixUserID,
 		ExistingRoomID:       w.Status.RoomID,
 		CurrentExposedPorts:  w.Status.ExposedPorts,
+  Heartbeat:            heartbeat,
 		Owner:                w,
 	}
 }

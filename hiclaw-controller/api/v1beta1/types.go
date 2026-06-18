@@ -119,6 +119,12 @@ type WorkerSpec struct {
 	// scoped to agents/<name>/* and shared/*).
 	AccessEntries []AccessEntry `json:"accessEntries,omitempty"`
 
+		// Heartbeat configures periodic agent wake-up for standalone workers.
+		// When enabled, the controller injects heartbeat settings into the
+		// generated openclaw.json so the Hermes agent autonomously wakes up
+		// on the configured schedule. Nil means no heartbeat (reactive-only).
+		Heartbeat *TeamLeaderHeartbeatSpec `json:"heartbeat,omitempty"`
+
 	// Env holds user-defined environment variables injected into the worker
 	// container. Keys that collide with variables already set by the
 	// controller or backend (HICLAW_*, OPENCLAW_*, HOME, and similar
