@@ -655,6 +655,23 @@ def bridge_openclaw_to_hermes(
     terminal.setdefault("backend", "local")
     terminal.setdefault("cwd", str(hermes_home))
 
+    # ── providers block ─────────────────────────────────────────────────
+    # Hermes resolve_runtime_provider() needs a `providers` section with
+    # the API key. Without this, cron jobs get `no-key-required` (HTTP 401).
+    _provider_cfg = (_resolve_active_model(openclaw_cfg) or {}).get("_provider", {})
+    _api_key = _provider_cfg.get("apiKey", "")
+    _base_url = _provider_cfg.get("baseUrl", "")
+    if _api_key and _base_url:
+        providers = existing_yaml.setdefault("providers", {})
+        if not isinstance(providers, dict):
+            providers = {}
+            existing_yaml["providers"] = providers
+        providers["custom"] = {
+            "api_key": _api_key,
+            "base_url": _base_url,
+            "key_env": "OPENAI_API_KEY",
+        }
+
     config_path.write_text(
         yaml.safe_dump(
             existing_yaml,
