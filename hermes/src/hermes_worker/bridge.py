@@ -428,44 +428,6 @@ def _bridge_mcporter_config(hermes_home: Path) -> None:
 # ---------------------------------------------------------------------------
 
 _HEARTBEAT_CRON_JOB_NAME = "hiclaw-heartbeat"
-_HEARTBEAT_CRON_PROMPT = """\
-WAKE UP. Read SOUL.md and AGENTS.md first. You are the COORDINATOR for \
-a carbon-silicon trading platform. Execute this checklist EVERY wake-up.
-
-STEP 0: skill_load("mcporter") to register MCP tools as native tools.
-This is NOT skill_view. After loading, call trade.* tools directly:
-  trade.list_open_tasks(...) — NOT terminal("mcporter call trade.xxx")
-  trade.submit_bid(...) / trade.report_progress(...) / trade.deliver(...)
-
-STEP 1: CROSS-REFERENCE (dedup)
-Compare list_tasks() with trade.list_my_tasks(status=["in_progress","assigned"]).
-- Platform in_progress + no matching sub-agent -> delegate_task_async
-- Workspace has plan.md -> resume from checkpoint
-
-STEP 2: MONITOR active sub-agents
-list_tasks() -> check each status -> trade.report_progress(taskId, phase, progress).
-Sub-agent done? collect_task(taskId) -> trade.deliver(taskId, agentId, previewUrl,
-artifacts, resultSummary). Stuck >5min no output? cancel -> retry (max 2).
-
-STEP 3: ACCEPTANCE FEEDBACK (highest priority)
-trade.list_my_tasks(status=["delivered"]) -> trade.get_task_status(taskId).
-COMPLETED: clean workspace. REVISION_REQUESTED: read revisionReason -> \
-delegate_task_async to fix -> trade.deliver(..., revision=true).
-
-STEP 4: SCAN new tasks
-trade.list_open_tasks(skills=["react","nodejs","html-css"]) ->
-hasMyBid=false: analyze -> trade.submit_bid(taskId, agentId, priceCny,
-planSummary, estimatedHours). hasMyBid=true + ACCEPTED: delegate_task_async.
-
-CRITICAL RULES (violations = failure):
-1. COORDINATOR only. NEVER write code, mkdir, npm, or vite. ALWAYS delegate_task_async.
-2. After skill_load("mcporter"), trade.* tools are native functions. Call directly.
-   NEVER use terminal("mcporter call ..."). NEVER use curl.
-3. Sub-agent goal MUST start with [taskId]. workspace_dir="shared/tasks/<taskId>/".
-   Max 3 concurrent sub-agents.
-4. trade.report_progress BEFORE any long terminal command.
-5. If blocked, report stalled and wait for next wake-up. Do not spin.
-"""
 
 
 def _bridge_heartbeat_to_cron(
@@ -473,19 +435,15 @@ def _bridge_heartbeat_to_cron(
     hermes_home: Path,
     soul: Optional[str] = None,
 ) -> None:
-    """Ensure a heartbeat cron job exists with an up-to-date prompt.
+    """Ensure a heartbeat cron job exists with prompt from Worker SOUL.md.
 
-    Two strategies, in order:
+    The cron prompt = the Worker CRD ``spec.soul`` content — users edit
+    the Worker YAML to customise agent behaviour, no image rebuild needed.
 
-    1. If openclaw.json declares ``agents.defaults.heartbeat.enabled``,
-       create or update a Hermes cron job with that interval.  This is the
-       canonical path once the controller injects heartbeat (D48).
+    Schedule detection (two strategies):
 
-    2. **Fallback (P5 workaround)**: If openclaw.json does NOT declare
-       heartbeat (controller image predates D48), scan the existing cron
-       jobs for any that match our schedule pattern.  When found, update
-       their prompt to the current coordinator checklist.  This keeps
-       manually-created cron jobs current without controller support.
+    1. openclaw.json ``agents.defaults.heartbeat`` → use that interval.
+    2. Fallback: scan existing cron jobs for interval patterns.
     """
     hb = (
         openclaw_cfg.get("agents", {})
@@ -515,19 +473,14 @@ def _bridge_heartbeat_to_cron(
         )
         return
 
-    # Build prompt (with SOUL.md summary if available)
-    prompt = _HEARTBEAT_CRON_PROMPT
-    if soul:
-        soul_brief = "\n".join(
-            line for line in soul.split("\n")
-            if line.strip() and not line.strip().startswith("#")
-        )[:1500]
-        prompt = (
-            "Read SOUL.md for your full identity. Summary:\n"
-            + soul_brief
-            + "\n\n---\n\n"
-            + _HEARTBEAT_CRON_PROMPT
+    # Cron prompt = Worker SOUL.md content (user-editable via CRD spec.soul).
+    # An empty soul means no coordination logic to run — skip cron setup.
+    prompt = (soul or "").strip()
+    if not prompt:
+        logger.info(
+            "bridge: Worker has no SOUL.md — skipping heartbeat cron job"
         )
+        return
 
     jobs = load_jobs()
 
