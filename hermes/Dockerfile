@@ -126,7 +126,11 @@ RUN python -m venv /opt/venv/hermes \
         --index-url "${PIP_INDEX_URL}" \
         --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
         /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ \
-    && rm -rf /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ /tmp/hermes-worker/
+    && rm -rf /tmp/hiclaw-taskflow/ /tmp/hiclaw-filesync/ /tmp/hermes-worker/ \
+    && /opt/venv/hermes/bin/pip install --no-cache-dir \
+        --index-url "${PIP_INDEX_URL}" \
+        "discord.py[voice]==2.7.1" "brotlicffi==1.2.0.1" \
+        "aiosqlite==0.22.1" "asyncpg==0.31.0" "edge-tts==7.2.7"
 
 # --- Overlay real hermes-worker source (high-frequency changes) ---
 # This layer is rebuilt on every src/ change but does NOT invalidate the
