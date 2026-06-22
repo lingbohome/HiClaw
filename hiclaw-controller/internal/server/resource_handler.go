@@ -839,6 +839,7 @@ func workerToResponse(w *v1beta1.Worker) WorkerResponse {
 		MatrixUserID:   w.Status.MatrixUserID,
 		RoomID:         w.Status.RoomID,
 		Message:        w.Status.Message,
+		Labels:         w.Labels,
 	}
 	if w.Spec.ContainerManaged != nil {
 		resp.ContainerManaged = *w.Spec.ContainerManaged

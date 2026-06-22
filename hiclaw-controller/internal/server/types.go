@@ -69,6 +69,7 @@ type WorkerResponse struct {
 	ExposedPorts     []ExposedPortInfo `json:"exposedPorts,omitempty"`
 	Team             string            `json:"team,omitempty"`
 	Role             string            `json:"role,omitempty"`
+	Labels           map[string]string `json:"labels,omitempty"`
 }
 
 type ExposedPortInfo struct {
