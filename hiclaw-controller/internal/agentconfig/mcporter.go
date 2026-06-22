@@ -32,12 +32,18 @@ func (g *Generator) GenerateMcporterConfig(gatewayKey string, mcpServers []v1bet
 		if transport == "" {
 			transport = "http"
 		}
+		// Start with CRD-specified custom headers (if any)
+		headers := make(map[string]string, len(s.Headers)+1)
+		for k, v := range s.Headers {
+			headers[k] = v
+		}
+		// Controller-managed Authorization header always wins
+		headers["Authorization"] = "Bearer " + gatewayKey
+
 		servers[name] = map[string]interface{}{
 			"url":       url,
 			"transport": transport,
-			"headers": map[string]string{
-				"Authorization": "Bearer " + gatewayKey,
-			},
+			"headers":   headers,
 		}
 	}
 
