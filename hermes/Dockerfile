@@ -59,6 +59,28 @@ RUN if [ -n "${APT_MIRROR}" ]; then \
         tzdata \
     && rm -rf /var/lib/apt/lists/*
 
+# Chromium headless browser dependencies (browser-use / Playwright).
+# Installed separately so the base system layer stays cacheable.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgbm1 \
+        libnss3 \
+        libnspr4 \
+        libatk1.0-0t64 \
+        libatk-bridge2.0-0t64 \
+        libcups2t64 \
+        libdrm2 \
+        libxkbcommon0 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxrandr2 \
+        libpango-1.0-0 \
+        libcairo2 \
+        libasound2t64 \
+        libexpat1 \
+        libdbus-1-3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # jemalloc reduces Python memory fragmentation (~10-20% RSS savings).
 RUN JEMALLOC=$(find /usr/lib -name 'libjemalloc.so.2' -print -quit) \
     && echo "LD_PRELOAD=${JEMALLOC}" >> /etc/environment \
@@ -76,7 +98,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN npm config set registry ${NPM_REGISTRY} && \
-    npm install -g mcporter skills @nacos-group/cli && \
+    npm install -g mcporter skills @nacos-group/cli pnpm && \
     rm -rf /root/.npm
 
 # --- Heavy install layer (cached unless HERMES_GIT_REF or hermes-worker
@@ -132,6 +154,17 @@ RUN python -m venv /opt/venv/hermes \
         "discord.py[voice]==2.7.1" "brotlicffi==1.2.0.1" \
         "aiosqlite==0.22.1" "asyncpg==0.31.0" "edge-tts==7.2.7"
 
+# --- browser-use: browser automation CLI + headless Chromium ---
+# Placed after the heavy install layer so it's cached independently
+# from hermes-worker source changes.  browser-use install downloads
+# Chromium (~300 MB) — this layer changes only when the package is
+# upgraded, which is infrequent.
+RUN /opt/venv/hermes/bin/pip install --no-cache-dir \
+        --index-url "${PIP_INDEX_URL}" \
+        --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
+        browser-use \
+    && /opt/venv/hermes/bin/browser-use install
+
 # --- Overlay real hermes-worker source (high-frequency changes) ---
 # This layer is rebuilt on every src/ change but does NOT invalidate the
 # heavy install layers above, saving ~1-2 GB of re-download on typical edits.
@@ -160,7 +193,8 @@ RUN if [ -f /opt/venv/hermes/bin/hermes ]; then \
     fi \
     && ln -sf /opt/venv/hermes/bin/hermes-worker /usr/local/bin/hermes-worker \
     && ln -sf /opt/venv/hermes/bin/hiclaw-taskflow /usr/local/bin/hiclaw-taskflow \
-    && ln -sf /opt/venv/hermes/bin/hiclaw-filesync /usr/local/bin/hiclaw-filesync
+    && ln -sf /opt/venv/hermes/bin/hiclaw-filesync /usr/local/bin/hiclaw-filesync \
+    && ln -sf /opt/venv/hermes/bin/browser-use /usr/local/bin/browser-use
 
 # Entrypoint script
 COPY --chmod=755 scripts/hermes-worker-entrypoint.sh /opt/hiclaw/scripts/hermes-worker-entrypoint.sh
