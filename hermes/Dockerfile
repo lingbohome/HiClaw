@@ -159,15 +159,17 @@ RUN python -m venv /opt/venv/hermes \
 # from hermes-worker source changes.  Downloads Chromium (~300 MB) —
 # this layer changes only when the package is upgraded.
 #
-# uv is needed for browser-use install (calls uvx internally to fetch
-# Chromium).  After install we restore hermes-agent's pinned versions
-# of openai / pydantic / rich — browser-use's looser constraints cause
-# pip to downgrade them, which produces resolver warnings.
+# We install playwright explicitly and call `playwright install chromium`
+# instead of `browser-use install` (which uses uvx → non-deterministic
+# playwright version → Chromium version mismatch at runtime).
+# After install we restore hermes-agent's pinned versions of openai /
+# pydantic / rich — browser-use's looser constraints cause pip to
+# downgrade them, which produces resolver warnings.
 RUN /opt/venv/hermes/bin/pip install --no-cache-dir \
         --index-url "${PIP_INDEX_URL}" \
         --trusted-host "$(echo ${PIP_INDEX_URL} | sed 's|https\?://||;s|/.*||')" \
-        uv browser-use \
-    && PATH="/opt/venv/hermes/bin:${PATH}" browser-use install \
+        browser-use "playwright>=1.52" \
+    && /opt/venv/hermes/bin/playwright install chromium \
     && /opt/venv/hermes/bin/pip install --no-cache-dir --upgrade \
         --index-url "${PIP_INDEX_URL}" \
         'openai==2.24.0' 'pydantic==2.13.4' 'rich==14.3.3'
