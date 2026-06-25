@@ -25,6 +25,31 @@ All work for a task stays under:
 
 Your coordinator creates `spec.md`, `base/`, and `meta.json`. You own everything else.
 
+**If you are your own coordinator** (standalone worker with Coordinator/Executor/Reviewer
+roles, such as trade-worker or docs-worker): the Coordinator role MUST create `meta.json`
+BEFORE dispatching a task to the Executor. Without `meta.json`, the Executor's
+`hiclaw-taskflow ack` will fail, and the continuous task sync to MinIO will skip the
+task directory entirely.  Template:
+
+```bash
+mkdir -p ~/shared/tasks/{task-id}
+cat > ~/shared/tasks/{task-id}/meta.json << 'EOF'
+{
+  "task_id": "{task-id}",
+  "title": "{task title from platform.task.get}",
+  "type": "finite",
+  "status": "assigned",
+  "assigned_to": "{your-worker-name}",
+  "room_id": "{your-matrix-room-id}",
+  "created_at": "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+}
+EOF
+mc cp ~/shared/tasks/{task-id}/meta.json ${HICLAW_STORAGE_PREFIX}/shared/tasks/{task-id}/meta.json
+```
+
+Then send the 🎯 DM to wake the Executor.  The Executor's `ack` will pick up this
+`meta.json` and transition the status to `in_progress`.
+
 - **plan.md**: Create with checkbox steps before starting work. Updated via `hiclaw-taskflow mark-step`.
 - **workspace/**: Intermediate files (code drafts, research notes, build artifacts). Use this for work-in-progress that isn't a deliverable yet.
 - **progress/**: Write daily progress logs to `progress/YYYY-MM-DD.md` after each meaningful action (completing a step, hitting a problem, making a decision). See the `task-progress` skill for the exact format. Push to MinIO after each update — this feeds the Console Activity Feed.
