@@ -92,11 +92,10 @@ COPY --from=mc /usr/bin/mc /usr/local/bin/mc.bin
 # hiclaw CLI — for worker/team/human management via controller REST API
 COPY --from=hiclaw-controller /usr/local/bin/hiclaw /usr/local/bin/hiclaw
 
-# Install Node.js 22 from NodeSource (Debian Bookworm apt ships Node 18,
-# too old for pnpm 10+).  Includes npm.
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+# Install Node.js 22 LTS from official binary (Debian Bookworm apt ships
+# Node 20, too old for pnpm 10+).  Deterministic — no external setup script.
+RUN curl -fsSL https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.xz \
+      | tar -xJ -C /usr/local --strip-components=1
 
 RUN npm config set registry ${NPM_REGISTRY} && \
     npm install -g mcporter skills @nacos-group/cli pnpm && \
