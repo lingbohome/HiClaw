@@ -771,7 +771,7 @@ def push_local(sync: FileSync, since: float = 0) -> list[str]:
         "__pycache__",
     }
     # File extensions to skip (transient runtime files)
-    _EXCLUDE_EXTENSIONS = {".lock", ".db", ".db-journal", ".db-wal", ".db-shm"}
+    _EXCLUDE_EXTENSIONS = {".lock", ".db-journal", ".db-wal", ".db-shm"}
     pushed: list[str] = []
     local_dir = sync.local_dir
     if not local_dir.exists():
